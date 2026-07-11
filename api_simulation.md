@@ -1,7 +1,13 @@
 # API Simulation
-This system is directly based on Kubaka system which right, i don't have an access to it. in order to built whole thing, i'm writing a simulation how api's would act if the were their.
+This system is based on the Kubaka system, which I do not have access to. To build the project, I am creating a simulation of how the APIs would behave if they were available.
 
-## How it's built
-their will be the script for generation continuios of project that acting the way system would act if it has Kubaka API, in place and also have an fastapi endpoints for it to be activated.
+## How it’s built
 
-## file structure
+There will be a script that continuously generates projects and makes them behave as the system would if it had the Kubaka API in place. It will also include FastAPI endpoints to activate the simulation.
+
+## File structure
+ api_simulation/
+├── data_generator.py      # Script to generate synthetic data
+├── api_server.py          # FastAPI application simulating endpoints
+├── transmit_data.py       # Script to call the API and send data
+└── requirements.txt       # Dependencies involved
