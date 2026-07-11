@@ -3,3 +3,5 @@ This system is directly based on Kubaka system which right, i don't have an acce
 
 ## How it's built
 their will be the script for generation continuios of project that acting the way system would act if it has Kubaka API, in place and also have an fastapi endpoints for it to be activated.
+
+## file structure
