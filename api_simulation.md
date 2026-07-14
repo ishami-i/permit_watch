@@ -6,8 +6,7 @@ This system is based on the Kubaka system, which I do not have access to. To bui
 There will be a script that continuously generates projects and makes them behave as the system would if it had the Kubaka API in place. It will also include FastAPI endpoints to activate the simulation.
 
 ## File structure
-api_simulation/
-.
+api_simulation
 ├── api_server.py
 ├── data_generator
 │   ├── applicant.py
