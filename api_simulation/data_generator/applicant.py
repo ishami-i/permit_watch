@@ -25,7 +25,7 @@ with open(file_path, 'r') as file:
 
 # Function to generate a data but names is not random, it is from a list of names
 
-def generate_applicants(num_applicants=10):
+def generate_applicants(num_applicants):
     names = names_list['names']
     applicants = []
     for _ in range(num_applicants):
