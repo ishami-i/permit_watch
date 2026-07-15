@@ -119,30 +119,7 @@ def generate_projects(num_projects):
             number_of_floors * floor_height,
             2
         )
-
-        # ----------------------------------------------------
-        # Design files
-        # ----------------------------------------------------
-
-        design_data = {
-            "architectural_drawings": generate_file_name(
-                "architectural",
-                "pdf"
-            ),
-            "structural_plans": generate_file_name(
-                "structural",
-                "pdf"
-            ),
-            "bim_file": generate_file_name(
-                "bim",
-                "ifc"
-            ),
-            "compliance_report": generate_file_name(
-                "compliance",
-                "json"
-            )
-        }
-
+        
         # ----------------------------------------------------
         # Financial calculations
         # ----------------------------------------------------
@@ -258,9 +235,6 @@ def generate_projects(num_projects):
                 "building_height": building_height,
                 "gross_floor_area": gross_floor_area
             },
-
-            "design_data": design_data,
-
             "financial_data": financial_data
         }
 
