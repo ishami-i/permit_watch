@@ -198,7 +198,6 @@ def generate_properties(num_properties):
     ]
 
     provinces = list(locations.keys())
-
     for i in range(num_properties):
 
         # Administrative hierarchy
@@ -213,16 +212,7 @@ def generate_properties(num_properties):
             locations[province][district]
         )
 
-        # Generate synthetic cells and villages
-
-        cell_number = random.randint(1, 20)
-        village_number = random.randint(1, 50)
-
-        cell = f"Cell-{cell_number:02d}"
-        village = f"Village-{village_number:02d}"
-
         # Parcel number
-
         plot_number = random.randint(
             100,
             9999
@@ -242,7 +232,6 @@ def generate_properties(num_properties):
             f"{province_code}/"
             f"{district_code}/"
             f"{sector_code}/"
-            f"{cell_number:02d}/"
             f"{plot_number}"
         )
 
@@ -351,13 +340,7 @@ def generate_properties(num_properties):
                     district,
 
                 "sector":
-                    sector,
-
-                "cell":
-                    cell,
-
-                "village":
-                    village
+                    sector
             },
 
             "gis_coordinates": {
