@@ -16,10 +16,10 @@ import random
 import json
 import datetime
 
-from property import generate_properties
-from professional import generate_professionals
-from applicant import generate_applicants
-from project import generate_projects
+from data_generator.property import generate_properties
+from data_generator.professional import generate_professionals
+from data_generator.applicant import generate_applicants
+from data_generator.project import generate_projects
 
 def generate_permits(num_permits):
 
