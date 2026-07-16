@@ -9,21 +9,21 @@ There will be a script that continuously generates projects and makes them behav
 api_simulation
 ├── api_server.py
 ├── data_generator
+│   ├── __pycache__
+│   │   ├── applicant.cpython-314.pyc
+│   │   ├── professional.cpython-314.pyc
+│   │   ├── project.cpython-314.pyc
+│   │   └── property.cpython-314.pyc
 │   ├── applicant.py
-│   ├── environment_clearance.py
-│   ├── inspection.py
 │   ├── ownership_certificate.pdf
 │   ├── permit.py
 │   ├── professional.py
 │   ├── project.py
-│   ├── property.py
-│   └── tax_record.py
-├── data_generator.py
+│   └── property.py
 ├── requirement.txt
-├── sample_data
-│   ├── location.json
-│   ├── names.json
-│   └── supervisors.json
-└── transmit_data.py
+└── sample_data
+    ├── location.json
+    ├── names.json
+    └── supervisors.json
 
-3 directories, 16 files
+4 directories, 15 files
