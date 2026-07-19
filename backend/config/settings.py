@@ -10,7 +10,9 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
+import os
 from pathlib import Path
+from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -38,7 +40,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     # Add your apps here
-    'data_manupulation.apps.DataManupulationConfig',
+    #'data_manipulation',
+    'data_manipulation.apps.DataManipulationConfig',
 ]
 
 MIDDLEWARE = [
@@ -117,3 +120,11 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
+
+# loading api url from .env file
+load_dotenv(BASE_DIR / ".env")
+
+PERMIT_API_URL = os.getenv(
+    "PERMIT_API_URL",
+    "http://127.0.0.1:5000/api/permits",
+    )
