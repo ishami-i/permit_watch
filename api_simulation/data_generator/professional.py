@@ -4,116 +4,115 @@ generate_professionals()
     Architect name
     Surveyor name
     Engineer license number
-        Format Structure: [Sequence Number]/[Discipline/Category Code]/[Board Acronym]/[Registration Year]
-        Example: A2121/EC/IER/2024 (where 'A' is the serial block, 'EC' denotes Engineering/Consulting, 'IER' stands for Institute of Engineering Rwanda, and '2024' is the registration year)
+        Format: [SerialBlock][SequenceNumber]/[Discipline Code]/[Board Acronym]/[Registration Year]
+        Example: A2121/EC/IER/2024 (A=serial block, EC=Engineering/Consulting,
+                 IER=Institute of Engineering Rwanda, 2024=registration year)
     Architect license number
-        Format Structure: [Sequence Number]/[Board Acronym] or simply a sequential number.
-        Example: A034/RIA/2023 (where 'A' indicates Architect, 'RIA' stands for the Rwanda Institute of Architects, and '2023' is the initial year of registration).
+        Format: [SerialBlock][SequenceNumber]/[Board Acronym]/[Registration Year]
+        Example: A034/RIA/2023 (A=architect prefix, RIA=Rwanda Institute of Architects,
+                 2023=initial registration year)
     Surveyor certification number
-        Format Structure: [Profession Code][Sequence Number]
-        Example: LS00377 (where 'LS' designates Land Surveyor and '00377' is the registrant's chronological sequence number).
+        Format: [ProfessionCode][SequenceNumber]
+        Example: LS00377 (LS=Land Surveyor, 00377=chronological sequence number)
     Verification records from professional regulatory boards
 """
 import random
-import string
 import json
 import datetime
-import pathlib as Path
+from pathlib import Path
 
+# Root directory containing sample data
+_ROOT_DIR = Path(__file__).resolve().parent.parent
+_NAMES_FILE = _ROOT_DIR / "sample_data" / "names.json"
 
-# find root directory containing sample data
-root_dir = Path.Path(__file__).resolve().parent.parent
+with open(_NAMES_FILE, "r", encoding="utf-8") as _file:
+    _NAMES = json.load(_file)["names"]
 
-# define the file path 
-file_path = root_dir / 'sample_data' / 'names.json'
-
-# open and load the names from the json file
-with open(file_path, 'r') as file:
-    names_list = json.load(file)
-
-# function for engineer license number generation
 def generate_engineer_license(
     serial_block: str = "A",
-    sequence_number: int = random.randint(1000, 9999),
+    sequence_number: int = None,
     discipline_code: str = "EC",
     board_acronym: str = "IER",
-    registration_year: int = random.randint(2000, datetime.datetime.now().year)
+    registration_year: int = None
 ) -> str:
     """
-    Generates an Engineer license number matching the exact pattern.
-    Format: [SerialBlock][SequenceNumber]/[Discipline/Category Code]/[Board Acronym]/[Registration Year]
+    Generates an Engineer license number.
+    Format: [SerialBlock][SequenceNumber]/[Discipline Code]/[Board Acronym]/[Registration Year]
     Example output: A2121/EC/IER/2024
-    """
-    Engineer_licence = f"{serial_block}{sequence_number}/{discipline_code}/{board_acronym}/{registration_year}"
-    return Engineer_licence
 
-# license number generation for architect
+    NOTE: sequence_number and registration_year are generated fresh on every
+    call (default is None, resolved inside the function body) rather than
+    baked into the signature - a mutable/random default evaluated at def
+    time would otherwise return the same "random" value on every call.
+    """
+    if sequence_number is None:
+        sequence_number = random.randint(1000, 9999)
+    if registration_year is None:
+        registration_year = random.randint(2000, datetime.datetime.now().year)
+
+    return f"{serial_block}{sequence_number}/{discipline_code}/{board_acronym}/{registration_year}"
+
+
 def generate_architect_license(
     serial_block: str = "A",
-    sequence_number: int = random.randint(10, 99),
-    registration_year: int = random.randint(2000, datetime.datetime.now().year)
+    sequence_number: int = None,
+    board_acronym: str = "RIA",
+    registration_year: int = None
 ) -> str:
     """
-    Generates an Architect license number matching the exact pattern.
-    Format: [SerialBlock][SequenceNumber]/[Registration Year]
-    Example output: A034.23
+    Generates an Architect license number.
+    Format: [SerialBlock][SequenceNumber]/[Board Acronym]/[Registration Year]
+    Example output: A034/RIA/2023
     """
-    # output the last two digits of the registration year
-    registration_year = str(registration_year)[-2:]
-    Architect_licence = f"{serial_block}.{sequence_number}.{registration_year}"
-    return Architect_licence
+    if sequence_number is None:
+        sequence_number = random.randint(1, 999)
+    if registration_year is None:
+        registration_year = random.randint(2000, datetime.datetime.now().year)
+
+    return f"{serial_block}{sequence_number:03d}/{board_acronym}/{registration_year}"
 
 
-# genarate surveyor certification number
 def generate_surveyor_certification(
-        profession_code: str = "LS",
-        Sequence_code: int = random.randint(1, 99999),
-        padding: str = "5"
+    profession_code: str = "LS",
+    sequence_number: int = None,
+    padding: int = 5
 ) -> str:
     """
-    Generates a Surveyor certification number matching the exact pattern.
-    Format: [Profession Code][Sequence Number]
+    Generates a Surveyor certification number.
+    Format: [ProfessionCode][SequenceNumber]
     Example output: LS00377
     """
-    # pad the sequence number with leading zeros to ensure it is 5 digits long
-    Sequence_code = str(Sequence_code).zfill(int(padding))
-    Surveyor_certification = f"{profession_code}{Sequence_code}"
-    return Surveyor_certification
+    if sequence_number is None:
+        sequence_number = random.randint(1, 99999)
 
-# Function to generate a data but names is not random, it is from a list of names
+    return f"{profession_code}{str(sequence_number).zfill(padding)}"
+
 def generate_professionals(num_professionals):
-    engineer_names = names_list['names']
-    architect_names = names_list['names']
-    surveyor_names = names_list['names']
+    """
+    Generate `num_professionals` records, each pairing a random engineer,
+    architect, and surveyor (names drawn from the sample names list) with
+    freshly generated license/certification numbers.
+    """
     professionals = []
     for _ in range(num_professionals):
-        engineer_name = random.choice(engineer_names)
-        architect_name = random.choice(architect_names)
-        surveyor_name = random.choice(surveyor_names)
-
-        engineer_license_number = generate_engineer_license()
-        architect_license_number = generate_architect_license()
-        surveyor_certification_number = generate_surveyor_certification()
-
         professional = {
             "engineer": {
-                "name": engineer_name,
-                "license_number": engineer_license_number
+                "name": random.choice(_NAMES),
+                "license_number": generate_engineer_license()
             },
             "architect": {
-                "name": architect_name,
-                "license_number": architect_license_number
+                "name": random.choice(_NAMES),
+                "license_number": generate_architect_license()
             },
             "surveyor": {
-                "name": surveyor_name,
-                "certification_number": surveyor_certification_number
+                "name": random.choice(_NAMES),
+                "certification_number": generate_surveyor_certification()
             }
         }
         professionals.append(professional)
     return professionals
 
+
 if __name__ == "__main__":
-    # Generate 10 random professionals and print them
-    generated_professionals = generate_professionals(10)
-    for professional in generated_professionals:
-        print(professional)
+    for generated_professional in generate_professionals(10):
+        print(generated_professional)
