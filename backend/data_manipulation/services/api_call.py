@@ -22,7 +22,7 @@ def create_session():
     """
 
     retry_strategy = Retry(
-        total=3;
+        total=3,
         connect=3,
         read=3,
         backoff_factor=1,

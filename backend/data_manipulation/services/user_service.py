@@ -4,21 +4,17 @@ It provides functions to create, update, delete, and retrieve user information, 
 chief/deputy ombudsman is the highest authority in the system, and monitoring officers are responsible for overseeing and monitoring activities within the system.
 chief/deputy ombudsman can create monitoring officer users, and monitoring officers can create regular users. 
 """
-from django.contrib.auth.models import User
+from ..models import User, Role
 
 # creating monitoring officer user
-def create_monitoring_officer(full_name, password, email, phone_number):
-    user = User.objects.create_user(
-        username=email,
-        password=password,
-        email=email,
-        first_name=full_name.split()[0],
-        last_name=" ".join(full_name.split()[1:]),
-    )
-    user.phone_number = phone_number
-    user.role = "monitoring_officer"
-    user.save()
-    return user
+def create_monitoring_officer(full_name, email, phone_number):
+    role = Role.objects.get(role_name=Role.RoleNames.MONITORING_OFFICER)
+    return User.objects.create(
+        user_name=full_name,
+        user_email=email,
+        user_phone=phone_number,
+        user_role=role,
+    ) 
 
 # assigning monitoring officer to a specific administrative location to monitor
 def assign_monitoring_officer_to_location(monitoring_officer, location):

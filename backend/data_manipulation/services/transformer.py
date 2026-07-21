@@ -42,12 +42,8 @@ def validate_permit(permit: dict):
     
 def ensure_nested_key(parent: dict, key: str):
     """
-    Ensure that a nested key exists in a dictionary.
+    Ensure that a nested key exists...
     If the key is missing, it will be created as an empty dictionary.
-
-    Args:
-        parent (dict): The parent dictionary.
-        key (str): The key to ensure exists.
     """
     if key not in parent:
         raise ValueError(
