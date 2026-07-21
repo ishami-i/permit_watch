@@ -13,6 +13,7 @@ class User(models.Model):
     user_name = models.CharField(max_length=250)
     user_email = models.EmailField(max_length=150, unique=True)
     user_phone = models.CharField(max_length=15, unique=True)
+    assigned_district = models.CharField(max_length=100, blank=True, null=True)
     user_status = models.CharField(
         max_length=20,
         choices=Status.choices,
