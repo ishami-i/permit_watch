@@ -1,130 +1,51 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+:root {
+  /* Typography */
+  --text-primary: rgb(36, 17, 15);
+  --text-secondary: rgb(107, 51, 46);
+  --text-muted: rgb(143, 68, 61);
 
-@layer base {
-  :root {
-    --text-50: #ebe9fc;
-    --text-100: #d7d2f9;
-    --text-200: #afa6f2;
-    --text-300: #8779ec;
-    --text-400: #5e4ce6;
-    --text-500: #3620df;
-    --text-600: #2b19b3;
-    --text-700: #211386;
-    --text-800: #160d59;
-    --text-900: #0b062d;
-    --text-950: #050316;
-    
-    --background-50: #ebebfa;
-    --background-100: #d6d6f5;
-    --background-200: #adadeb;
-    --background-300: #8585e0;
-    --background-400: #5c5cd6;
-    --background-500: #3333cc;
-    --background-600: #2929a3;
-    --background-700: #1f1f7a;
-    --background-800: #141452;
-    --background-900: #0a0a29;
-    --background-950: #050514;
-    
-    --primary-50: #e8ffe5;
-    --primary-100: #d2ffcc;
-    --primary-200: #a5ff99;
-    --primary-300: #78ff66;
-    --primary-400: #4bff33;
-    --primary-500: #1eff00;
-    --primary-600: #18cc00;
-    --primary-700: #129900;
-    --primary-800: #0c6600;
-    --primary-900: #063300;
-    --primary-950: #031a00;
-    
-    --secondary-50: #e7e5ff;
-    --secondary-100: #cfccff;
-    --secondary-200: #9e99ff;
-    --secondary-300: #6e66ff;
-    --secondary-400: #3d33ff;
-    --secondary-500: #0d00ff;
-    --secondary-600: #0a00cc;
-    --secondary-700: #080099;
-    --secondary-800: #050066;
-    --secondary-900: #030033;
-    --secondary-950: #01001a;
-    
-    --accent-50: #e6e5ff;
-    --accent-100: #ceccff;
-    --accent-200: #9c99ff;
-    --accent-300: #6b66ff;
-    --accent-400: #3a33ff;
-    --accent-500: #0800ff;
-    --accent-600: #0700cc;
-    --accent-700: #050099;
-    --accent-800: #030066;
-    --accent-900: #020033;
-    --accent-950: #01001a;
-    
-  }
-  .dark {
-    --text-50: #050316;
-    --text-100: #0a062d;
-    --text-200: #140c5a;
-    --text-300: #1e1287;
-    --text-400: #2818b4;
-    --text-500: #321fe0;
-    --text-600: #5b4be7;
-    --text-700: #8478ed;
-    --text-800: #ada5f3;
-    --text-900: #d6d2f9;
-    --text-950: #eae9fc;
-    
-    --background-50: #050514;
-    --background-100: #0a0a29;
-    --background-200: #141452;
-    --background-300: #1f1f7a;
-    --background-400: #2929a3;
-    --background-500: #3333cc;
-    --background-600: #5c5cd6;
-    --background-700: #8585e0;
-    --background-800: #adadeb;
-    --background-900: #d6d6f5;
-    --background-950: #ebebfa;
-    
-    --primary-50: #031a00;
-    --primary-100: #053300;
-    --primary-200: #0a6600;
-    --primary-300: #0f9900;
-    --primary-400: #14cc00;
-    --primary-500: #1aff00;
-    --primary-600: #47ff33;
-    --primary-700: #75ff66;
-    --primary-800: #a3ff99;
-    --primary-900: #d1ffcc;
-    --primary-950: #e8ffe5;
-    
-    --secondary-50: #01001a;
-    --secondary-100: #030033;
-    --secondary-200: #050066;
-    --secondary-300: #080099;
-    --secondary-400: #0a00cc;
-    --secondary-500: #0d00ff;
-    --secondary-600: #3d33ff;
-    --secondary-700: #6e66ff;
-    --secondary-800: #9e99ff;
-    --secondary-900: #cfccff;
-    --secondary-950: #e7e5ff;
-    
-    --accent-50: #01001a;
-    --accent-100: #020033;
-    --accent-200: #030066;
-    --accent-300: #050099;
-    --accent-400: #0700cc;
-    --accent-500: #0800ff;
-    --accent-600: #3a33ff;
-    --accent-700: #6b66ff;
-    --accent-800: #9c99ff;
-    --accent-900: #ceccff;
-    --accent-950: #e6e5ff;
-    
-  }
-},
+  /* Layout */
+  --bg-page: rgb(250, 235, 235);
+  --bg-card: rgb(255, 250, 250);
+  --bg-navbar: rgb(255, 255, 255);
+
+  /* Borders */
+  --border: rgb(235, 173, 173);
+
+  /* Brand */
+  --brand: rgb(204, 51, 51);
+  --brand-hover: rgb(163, 41, 41);
+
+  /* Accent */
+  --accent: rgb(56, 68, 199);
+
+  /* Shadows */
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 8px 20px rgba(0, 0, 0, 0.12);
+
+  /* Sizes */
+  --header-height: 72px;
+  --footer-height: 100px;
+}
+
+.dark {
+  --text-primary: rgb(247, 238, 237);
+  --text-secondary: rgb(224, 187, 184);
+  --text-muted: rgb(194, 119, 112);
+
+  --bg-page: rgb(20, 5, 5);
+  --bg-card: rgb(41, 10, 10);
+  --bg-navbar: rgb(30, 15, 15);
+
+  --border: rgb(122, 31, 31);
+
+  --brand: rgb(214, 92, 92);
+  --brand-hover: rgb(224, 133, 133);
+
+  --accent: rgb(96, 105, 210);
+}
+
+body {
+  background: var(--bg-page);
+  color: var(--text-primary);
+}
