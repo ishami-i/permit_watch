@@ -42,7 +42,6 @@ class PropertySerializer(serializers.ModelSerializer):
     class Meta:
         model = Property
         fields = "__all__"
-
 # Serializer for FinancialData model
 class FinancialDataSerializer(serializers.ModelSerializer):
     class Meta:
@@ -63,26 +62,27 @@ class SupervisorSerializer(serializers.ModelSerializer):
 # full permit serializer that includes all related objects
 class FullPermitSerializer(serializers.ModelSerializer):
 
+    timeline = TimelineSerializer(read_only=True)
     applicant = ApplicantSerializer(read_only=True)
-
     project = ProjectSerializer(read_only=True)
-
+    property = PropertySerializer(
+        source="project.property",
+        read_only=True
+    )    
     architect = ProfessionalSerializer(read_only=True)
-
     engineer = ProfessionalSerializer(read_only=True)
-
     surveyor = ProfessionalSerializer(read_only=True)
-
     supervisor = SupervisorSerializer(read_only=True)
-    
+
     class Meta:
         model = Permit
 
         fields = [
             "permitId",
-            "external_permit_id",
+            "timeline",
             "applicant",
             "project",
+            "property",
             "architect",
             "engineer",
             "surveyor",
