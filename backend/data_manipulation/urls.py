@@ -1,34 +1,40 @@
 from django.urls import path
-
-from .views import (
-    permit_data_view,
-    all_permit_data_view,
-    full_permit_data_view,
-    all_full_permit_data_view,
-)
+from . import views
 
 urlpatterns = [
     path(
         "permits/",
-        all_permit_data_view,
+        views.all_permit_data_view,
         name="permits",
     ),
-
     path(
         "permits/full/",
-        all_full_permit_data_view,
+        views.all_full_permit_data_view,
         name="full_permits",
     ),
-
     path(
         "permits/<int:permit_id>/",
-        permit_data_view,
+        views.permit_data_view,
         name="permit",
     ),
-
     path(
         "permits/full/<int:permit_id>/",
-        full_permit_data_view,
+        views.full_permit_data_view,
         name="full_permit",
+    ),
+    path(
+        "permits/flagged/", 
+        views.flagged_permits_list, 
+        name="flagged_permits_list"
+    ),
+    path(
+        "projects/flagged/", 
+        views.flagged_projects_list, 
+        name="flagged_projects_list"
+    ),
+    path(
+        "permits/<int:permit_id>/check/", 
+        views.trigger_permit_flag_check, 
+        name="check_permit"
     ),
 ]
