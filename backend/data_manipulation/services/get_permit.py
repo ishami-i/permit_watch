@@ -67,7 +67,21 @@ def get_all_permits():
         JsonResponse containing all permits.
     """
 
-    permits = Permit.objects.all()
+    permits = (
+    Permit.objects
+    .select_related(
+        "timeline",
+        "applicant",
+        "project",
+        "project__property",
+        "project__financial_data",
+        "project__property__zoning",
+        "architect",
+        "engineer",
+        "surveyor",
+        "supervisor",
+    )
+)
 
     serialized_permits = serializer.PermitSerializer(
         permits,
@@ -83,14 +97,28 @@ def get_all_permits():
 
 def get_all_full_permits():
     """
-    Retrieve all permits together with their related data.
+    Retrieve all permits in the database along with their related objects and return them as JSON.
 
     Returns:
         JsonResponse containing all permits with applicants,
         projects, architects, engineers, surveyors, and supervisors.
     """
 
-    permits = Permit.objects.all()
+    permits = (
+    Permit.objects
+    .select_related(
+        "timeline",
+        "applicant",
+        "project",
+        "project__property",
+        "project__financial_data",
+        "project__property__zoning",
+        "architect",
+        "engineer",
+        "surveyor",
+        "supervisor",
+    )
+)
 
     serialized_permits = serializer.FullPermitSerializer(
         permits,
