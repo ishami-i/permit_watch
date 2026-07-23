@@ -25,16 +25,6 @@ export default function Header() {
         </p>
       </div>
     </div>
-
-    {/* Navigation */}
-
-    <nav className="hidden md:flex items-center gap-8 text-sm">
-      <NavLink to="/">Home</NavLink>
-      <NavLink to="/dashboard">Dashboard</NavLink>
-      <NavLink to="/reports">Reports</NavLink>
-      <NavLink to="/contact">Contact</NavLink>
-    </nav>
-
     <ToolbarThemeToggle />
   </div>
 </header>
