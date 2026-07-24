@@ -1,7 +1,7 @@
 from django.db import models
 from .role import Role
 from django.contrib.auth.models import AbstractUser
-from ...config import settings
+from django.conf import settings
 # create a user model
 class User(AbstractUser):
     class Status(models.TextChoices):
