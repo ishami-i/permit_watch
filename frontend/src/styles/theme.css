@@ -1,0 +1,71 @@
+/*
+  Single theme source of truth.
+  The original codebase had two conflicting variable systems
+  (--bg-page/--text-primary in one file, --background-50/--text-900
+  used everywhere else). This file keeps the numeric scale since
+  that's what Header, Footer, Listing, and LocationFilters already
+  depend on, and retires the other file.
+*/
+
+:root {
+  /* Brand (Office of the Ombudsman red) */
+  --primary-50: #fdf2f2;
+  --primary-100: #fbe0e0;
+  --primary-200: #f5b8b8;
+  --primary-300: #ea8a8a;
+  --primary-400: #dd5f5f;
+  --primary-500: #cc3333;
+  --primary-600: #a32929;
+  --primary-700: #7f2020;
+  --primary-800: #5c1717;
+  --primary-900: #3d0f0f;
+
+  /* Neutral background scale */
+  --background-50: #ffffff;
+  --background-100: #faf5f5;
+  --background-200: #eee0e0;
+  --background-300: #ddc9c9;
+
+  /* Text scale */
+  --text-50: #fafafa;
+  --text-700: #6b332e;
+  --text-900: #24110f;
+
+  /* Status */
+  --success-500: #2f9e44;
+  --success-bg: #e9f9ee;
+  --warning-500: #e8a020;
+  --warning-bg: #fff6e5;
+  --danger-500: #d64545;
+  --danger-bg: #fdecec;
+  --info-500: #3b6fd6;
+  --info-bg: #eaf1fd;
+
+  --shadow-sm: 0 2px 8px rgba(36, 17, 15, 0.06);
+  --shadow-md: 0 8px 20px rgba(36, 17, 15, 0.1);
+
+  --header-height: 64px;
+}
+
+.dark {
+  --background-50: #1b0d0d;
+  --background-100: #241111;
+  --background-200: #3a1a1a;
+  --background-300: #4a2222;
+
+  --text-50: #2a1313;
+  --text-700: #d9a9a4;
+  --text-900: #f7eeed;
+
+  --primary-500: #d65c5c;
+
+  --success-bg: rgba(47, 158, 68, 0.15);
+  --warning-bg: rgba(232, 160, 32, 0.15);
+  --danger-bg: rgba(214, 69, 69, 0.15);
+  --info-bg: rgba(59, 111, 214, 0.15);
+}
+
+body {
+  background-color: var(--background-50);
+  color: var(--text-900);
+}
