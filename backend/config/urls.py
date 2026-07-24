@@ -18,9 +18,22 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from django.http import JsonResponse
+from rest_framework_simplejwt.views import (
+    TokenObtainPairView,
+    TokenRefreshView,
+)
+
 
 urlpatterns = [
     path("", lambda request: JsonResponse({"status": "ok"})),
     path("admin/", admin.site.urls),
     path("api/", include("data_manipulation.urls")),
+    path(
+        "token/",
+        TokenObtainPairView.as_view(),
+    ),
+    path(
+        "token/refresh/",
+        TokenRefreshView.as_view(),
+    ),
 ]
