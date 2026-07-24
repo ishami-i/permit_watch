@@ -1,13 +1,13 @@
-import api from "./api";
+import api from "../api/axios";
 import {
   PERMIT_API_URL,
   PERMIT_API_FULL_URL,
   PERMIT_API_FULL_ID_URL,
   PERMIT_API_ID_URL,
   PERMIT_API_FLAGGED_URL,
-  PROJECT_API_FLAGGED_URL,
+  PERMIT_API_PENDING_URL,
   PERMIT_API_CHECK_URL,
-} from "../";
+} from "../config";
 
 // Get all permits (basic)
 export const getPermits = async () => {
@@ -15,23 +15,21 @@ export const getPermits = async () => {
   return response.data;
 };
 
-// Get all permits with full related data
+// Get all permits with full related data (applicant, project, property, etc.)
 export const getFullPermits = async () => {
-  const response = await axios.get(PERMIT_API_FULL_URL);
+  const response = await api.get(PERMIT_API_FULL_URL);
   return response.data;
 };
 
 // Get a single permit (IDs only)
 export const getPermit = async (permitId) => {
-  const response = await axios.get(
-    PERMIT_API_ID_URL.replace("{permit_id}", permitId)
-  );
+  const response = await api.get(PERMIT_API_ID_URL.replace("{permit_id}", permitId));
   return response.data;
 };
 
 // Get a single permit with all related data
 export const getFullPermit = async (permitId) => {
-  const response = await axios.get(
+  const response = await api.get(
     PERMIT_API_FULL_ID_URL.replace("{permit_id}", permitId)
   );
   return response.data;
@@ -39,20 +37,18 @@ export const getFullPermit = async (permitId) => {
 
 // Get all flagged permits
 export const getFlaggedPermits = async () => {
-  const response = await axios.get(PERMIT_API_FLAGGED_URL);
+  const response = await api.get(PERMIT_API_FLAGGED_URL);
   return response.data;
 };
 
-// Get all flagged projects
-export const getFlaggedProjects = async () => {
-  const response = await axios.get(PROJECT_API_FLAGGED_URL);
+// Get all pending permits
+export const getPendingPermits = async () => {
+  const response = await api.get(PERMIT_API_PENDING_URL);
   return response.data;
 };
 
-// Trigger permit flag check
+// Trigger a permit flag re-check
 export const checkPermit = async (permitId) => {
-  const response = await axios.post(
-    PERMIT_API_CHECK_URL.replace("{permit_id}", permitId)
-  );
+  const response = await api.post(PERMIT_API_CHECK_URL.replace("{permit_id}", permitId));
   return response.data;
 };

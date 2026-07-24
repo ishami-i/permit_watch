@@ -1,51 +1,28 @@
-:root {
-  /* Typography */
-  --text-primary: rgb(36, 17, 15);
-  --text-secondary: rgb(107, 51, 46);
-  --text-muted: rgb(143, 68, 61);
+@import "./styles/theme.css";
 
-  /* Layout */
-  --bg-page: rgb(250, 235, 235);
-  --bg-card: rgb(255, 250, 250);
-  --bg-navbar: rgb(255, 255, 255);
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-  /* Borders */
-  --border: rgb(235, 173, 173);
-
-  /* Brand */
-  --brand: rgb(204, 51, 51);
-  --brand-hover: rgb(163, 41, 41);
-
-  /* Accent */
-  --accent: rgb(56, 68, 199);
-
-  /* Shadows */
-  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.08);
-  --shadow-md: 0 8px 20px rgba(0, 0, 0, 0.12);
-
-  /* Sizes */
-  --header-height: 72px;
-  --footer-height: 100px;
+* {
+  box-sizing: border-box;
 }
 
-.dark {
-  --text-primary: rgb(247, 238, 237);
-  --text-secondary: rgb(224, 187, 184);
-  --text-muted: rgb(194, 119, 112);
-
-  --bg-page: rgb(20, 5, 5);
-  --bg-card: rgb(41, 10, 10);
-  --bg-navbar: rgb(30, 15, 15);
-
-  --border: rgb(122, 31, 31);
-
-  --brand: rgb(214, 92, 92);
-  --brand-hover: rgb(224, 133, 133);
-
-  --accent: rgb(96, 105, 210);
+html,
+body,
+#root {
+  height: 100%;
 }
 
-body {
-  background: var(--bg-page);
-  color: var(--text-primary);
+/* Visible keyboard focus everywhere, not just on components that set it explicitly */
+:focus-visible {
+  outline: 2px solid var(--primary-500);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }

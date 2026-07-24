@@ -1,14 +1,32 @@
-import axios from 'axios';
-import { PERMIT_API_FULL_URL } from '../config';
+import axios from "axios";
+import { API_BASE_URL } from "../config";
 
-// calling the api to get the permit data from the backend
-export const permitData = async () => {
-    try {
-        const response = await axios.get(PERMIT_API_FULL_URL);
-        return response.data;
-    } catch (error) {
-        console.error('Error fetching permit data:', error);
-        throw error;
+const api = axios.create({
+  baseURL: API_BASE_URL,
+});
+
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem("access");
+
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+
+  return config;
+});
+
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem("access");
+      localStorage.removeItem("refresh");
+      if (window.location.pathname !== "/login") {
+        window.location.href = "/login";
+      }
     }
+    return Promise.reject(error);
+  }
+);
 
-};
+export default api;
