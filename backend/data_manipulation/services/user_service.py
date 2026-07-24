@@ -14,7 +14,7 @@ def create_monitoring_officer(full_name, email, phone_number):
         user_email=email,
         user_phone=phone_number,
         user_role=role,
-    ) 
+    )
 
 # assigning monitoring officer to a specific administrative location to monitor
 def assign_monitoring_officer_to_location(monitoring_officer, location):
