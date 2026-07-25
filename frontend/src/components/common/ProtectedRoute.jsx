@@ -3,7 +3,7 @@ import { useAuth } from "../../context/AuthContext";
 import Loading from "./Loading";
 
 export const ROLES = {
-  CHIEF: "chief_ombudsman",
+  CHIEF: "CHIEF_OMBUDSMAN",
   DEPUTY: "deputy_ombudsman",
   MONITORING_OFFICER: "monitoring_officer",
 };
