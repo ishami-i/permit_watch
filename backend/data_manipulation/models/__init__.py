@@ -10,3 +10,4 @@ from .supervisor import Supervisor
 from .timeline import Timeline
 from .user import User
 from .zoning import Zoning
+from .district import District
