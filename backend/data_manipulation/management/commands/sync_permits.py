@@ -17,7 +17,7 @@ class Command(BaseCommand):
         parser.add_argument(
             "--count",
             type=int,
-            default=40,
+            default=500,
             help="Number of permits to fetch from the external API (default: 40).",
         )
 
