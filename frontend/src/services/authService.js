@@ -2,7 +2,7 @@ import api from "../api/axios";
 import { LOGIN_URL, LOGOUT_URL, FORGOT_PASSWORD_URL, CURRENT_USER_URL } from "../config";
 
 export const login = async (email, password) => {
-  const response = await api.post(LOGIN_URL, { email, password });
+  const response = await api.post(LOGIN_URL, { user_email: email, password });
   const { access, refresh, user } = response.data;
 
   localStorage.setItem("access", access);
