@@ -1,40 +1,34 @@
 from django.urls import path
 from . import views
+from rest_framework_simplejwt.views import TokenRefreshView
+
+# use whichever of these actually exists on disk — delete the other import
+from .auth_views import CustomTokenObtainPairView
+# from .auth_serializers import CustomTokenObtainPairView
 
 urlpatterns = [
-    path(
-        "permits/",
-        views.all_permit_data_view,
-        name="permits",
-    ),
-    path(
-        "permits/full/",
-        views.all_full_permit_data_view,
-        name="full_permits",
-    ),
-    path(
-        "permits/<int:permit_id>/",
-        views.permit_data_view,
-        name="permit",
-    ),
-    path(
-        "permits/full/<int:permit_id>/",
-        views.full_permit_data_view,
-        name="full_permit",
-    ),
-    path(
-        "permits/flagged/", 
-        views.flagged_permits_list, 
-        name="flagged_permits_list"
-    ),
-    path(
-        "projects/flagged/", 
-        views.flagged_projects_list, 
-        name="flagged_projects_list"
-    ),
-    path(
-        "permits/<int:permit_id>/check/", 
-        views.trigger_permit_flag_check, 
-        name="check_permit"
-    ),
+    # Auth
+    path("auth/login/", CustomTokenObtainPairView.as_view(), name="token_obtain_pair"),
+    path("auth/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
+    path("auth/me/", views.current_user_view, name="current_user"),
+
+    # Permits
+    path("permits/", views.all_permit_data_view, name="permits"),
+    path("permits/full/", views.all_full_permit_data_view, name="full_permits"),
+    path("permits/<int:permit_id>/", views.permit_data_view, name="permit"),
+    path("permits/full/<int:permit_id>/", views.full_permit_data_view, name="full_permit"),
+    path("permits/flagged/", views.flagged_permits_list, name="flagged_permits_list"),
+    path("permits/<int:permit_id>/check/", views.trigger_permit_flag_check, name="check_permit"),
+
+    # Projects
+    path("projects/flagged/", views.flagged_projects_list, name="flagged_projects_list"),
+    path("dashboard/summary/", views.dashboard_summary_view, name="dashboard_summary"),
+    path("projects/", views.all_projects_view, name="projects"),
+    path("applicants/", views.all_applicants_view, name="applicants"),
+    path("applicants/<int:applicant_id>/", views.applicant_detail_view, name="applicant"),
+    path("projects/<str:project_id>/", views.project_detail_view, name="project"),
+    path("permits/pending/", views.pending_permit_data_view, name="pending_permits"),
+    path("alerts/", views.alerts_list_view, name="alerts"),
+    path("alerts/<int:alert_id>/", views.alert_detail_view, name="alert"),
+    path("alerts/<int:alert_id>/resolve/", views.resolve_alert_view, name="resolve_alert"),
 ]
