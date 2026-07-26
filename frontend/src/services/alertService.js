@@ -18,3 +18,10 @@ export const resolveAlert = async (alertId, resolutionNote) => {
   );
   return response.data;
 };
+export const updateAlertStatus = async (alertId, status, resolutionNote = "") => {
+  const response = await api.post(
+    ALERT_API_RESOLVE_URL.replace("{alert_id}", alertId),
+    { status, resolution_note: resolutionNote }
+  );
+  return response.data;
+};

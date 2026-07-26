@@ -40,3 +40,17 @@ export const createMonitoringOfficer = async (payload) => {
   const response = await api.post(OFFICER_API_URL, payload);
   return response.data;
 };
+export const updateOfficer = async (officerId, payload) => {
+  const response = await api.patch(
+    OFFICER_API_ID_URL.replace("{officer_id}", officerId),
+    payload
+  );
+  return response.data;
+};
+
+export const unassignOfficer = async (officerId) => {
+  const response = await api.post(
+    `${OFFICER_API_ID_URL.replace("{officer_id}", officerId)}unassign/`
+  );
+  return response.data;
+};
