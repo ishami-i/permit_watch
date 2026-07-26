@@ -80,7 +80,7 @@ def load_locations():
         return json.load(file)
 
 
-def generate_properties(num_properties):
+def generate_properties(num_properties, offset=0):
     """
     Generate realistic property records for Rwanda.
 
@@ -91,6 +91,9 @@ def generate_properties(num_properties):
     - Administrative location
     - GIS coordinates
     - Zoning data
+
+    `offset` shifts property_id numbering. This ID isn't used as a
+    database key (Property.upi is), but is offset for consistency.
     """
     locations = load_locations()
     properties = []
@@ -142,7 +145,7 @@ def generate_properties(num_properties):
         }
 
         property_data = {
-            "property_id": f"PROP-{i + 1:05d}",
+            "property_id": f"PROP-{offset + i + 1:05d}",
             "upi": upi,
             "physical_address": physical_address,
             "administrative_location": {
