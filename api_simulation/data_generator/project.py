@@ -47,15 +47,18 @@ def _floor_factor(number_of_floors):
     return 0.25 + ((number_of_floors - 4) * 0.03)
 
 
-def generate_projects(num_projects):
+def generate_projects(num_projects, offset=0):
     """
     Generate `num_projects` random building projects, each with building
     characteristics and an associated financial breakdown.
+
+    `offset` shifts project_id numbering to avoid colliding with
+    previously generated projects.
     """
     projects = []
 
     for i in range(num_projects):
-        project_id = f"PRJ-{i + 1:05d}"
+        project_id = f"PRJ-{offset + i + 1:05d}"
         building_purpose = random.choice(_BUILDING_PURPOSES)
 
         min_floors, max_floors, floor_height, min_area, max_area = _PURPOSE_PROFILES[building_purpose]
@@ -63,8 +66,8 @@ def generate_projects(num_projects):
         gross_floor_area = round(random.uniform(min_area, max_area), 2)
         building_height = round(number_of_floors * floor_height, 2)
 
-        # Financial calculations 
-        
+        # Financial calculations
+
         base_rate = _PURPOSE_BASE_RATES[building_purpose]
         floor_factor = _floor_factor(number_of_floors)
 
