@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import EmptyState from "../common/EmptyState";
 
-export default function OfficerTable({ officers }) {
+export default function OfficerTable({ officers, onEdit, onUnassign }) {
   if (!officers?.length) {
     return <EmptyState title="No officers found" />;
   }
@@ -32,12 +32,30 @@ export default function OfficerTable({ officers }) {
               <td className="px-4 py-2">{officer.alert_count ?? 0}</td>
               <td className="px-4 py-2">{officer.performance_score ?? "—"}</td>
               <td className="px-4 py-2 text-right">
-                <Link
-                  to={`/monitoring/officers/${officer.id}`}
-                  className="font-medium text-[var(--primary-600)] hover:underline"
-                >
-                  View
-                </Link>
+                <div className="flex justify-end gap-3">
+                  {onEdit && (
+                    <button
+                      onClick={() => onEdit(officer)}
+                      className="font-medium text-[var(--primary-600)] hover:underline"
+                    >
+                      Edit
+                    </button>
+                  )}
+                  {onUnassign && (
+                    <button
+                      onClick={() => onUnassign(officer)}
+                      className="font-medium text-[var(--danger-500)] hover:underline"
+                    >
+                      Unassign
+                    </button>
+                  )}
+                  <Link
+                    to={`/monitoring/officers/${officer.id}`}
+                    className="font-medium text-[var(--primary-600)] hover:underline"
+                  >
+                    View
+                  </Link>
+                </div>
               </td>
             </tr>
           ))}

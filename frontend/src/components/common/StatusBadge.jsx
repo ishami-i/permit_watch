@@ -14,10 +14,12 @@ const STATUS_TONE_MAP = {
   low: "success",
   pending: "warning",
   under_review: "warning",
+  investigating: "warning",
   medium: "warning",
   needs_assignment: "warning",
   flagged: "danger",
   rejected: "danger",
+  dismissed: "neutral",   
   high: "danger",
   critical: "danger",
 };
