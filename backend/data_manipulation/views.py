@@ -3,8 +3,7 @@ from django.shortcuts import get_object_or_404
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 # Import models cleanly from the core application package
-from data_manipulation.models import Permit
-
+from data_manipulation.models import Permit, AlertComment
 # Import unified business logic service functions
 from data_manipulation.services.flagged_project import (
     get_flagged_permits,
@@ -17,7 +16,7 @@ from data_manipulation.services.get_permit import (
     get_full_permit_data,
     get_permit_data,
 )
-from data_manipulation.serializer import PermitSerializer, ProjectSerializer
+from data_manipulation.serializer import PermitSerializer, ProjectSerializer, OfficerSerializer
 from django.contrib.auth import get_user_model
 from rest_framework.response import Response
 from django.db.models import Count
@@ -29,7 +28,7 @@ from data_manipulation.serializer import (
     ApplicantSerializer, ApplicantDetailSerializer,
     ProjectDetailSerializer, AlertSerializer, FullPermitSerializer,
 )
-
+from django.db.models.functions import TruncMonth
 
 
 User = get_user_model()
@@ -148,7 +147,7 @@ def current_user_view(request):
         "id": user.id,
         "name": user.user_name,
         "email": user.user_email,
-        "role": user.user_role.role_name if user.user_role else None,
+        "role": user.user_role.role_name.lower() if user.user_role else None,
         "district": user.assigned_district.name if user.assigned_district else None,
     })
 
@@ -190,6 +189,25 @@ def dashboard_summary_view(request):
         .order_by()
     )
 
+    monthly_trend_qs = (
+        Permit.objects.filter(timeline__submission_date__isnull=False)
+        .annotate(month=TruncMonth("timeline__submission_date"))
+        .values("month")
+        .annotate(value=Count("permitId"))
+        .order_by("month")
+    )
+    monthly_trend = [
+        {"month": row["month"].strftime("%b %Y"), "count": row["value"]}
+        for row in monthly_trend_qs
+    ]
+
+    recent_permits_qs = (
+        Permit.objects.filter(timeline__submission_date__isnull=False)
+        .select_related("applicant", "project__property__zoning", "timeline")
+        .order_by("-timeline__submission_date")[:5]
+    )
+    recent_permits = FullPermitSerializer(recent_permits_qs, many=True).data
+
     return Response({
         "total_permits": total_permits,
         "flagged_permits": flagged_permits,
@@ -208,16 +226,16 @@ def dashboard_summary_view(request):
             {"name": row["project__property__property_district"] or "Unknown", "value": row["value"]}
             for row in permits_by_district
         ],
-        "monthly_trend": [],   # needs a date field on Permit - see note above
+        "monthly_trend": monthly_trend,
         "alerts_by_severity": [
             {"severity": row["alert_severity"], "value": row["value"]}
             for row in alerts_by_severity
         ],
         "officer_workload": [
-            {"officer": o.user_name, "permits": 0}  # placeholder — see note below
+            {"officer": o.user_name, "permits": 0}
             for o in officers
         ],
-        "recent_permits": [],  # needs a date field to order by "recent"
+        "recent_permits": recent_permits,
         "recent_alerts": [
             {
                 "id": a.alertId,
@@ -228,18 +246,25 @@ def dashboard_summary_view(request):
             for a in Alert.objects.order_by("-alert_timestamp")[:5]
         ],
     })
-
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def all_applicants_view(request):
     applicants = Applicant.objects.all()
+    district = _officer_district_name(request)
+    if district:
+        applicants = applicants.filter(
+            permits__project__property__property_district=district
+        ).distinct()
     return Response(ApplicantSerializer(applicants, many=True).data)
 
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def applicant_detail_view(request, applicant_id):
     applicant = get_object_or_404(Applicant, pk=applicant_id)
-    return Response(ApplicantDetailSerializer(applicant).data)
+    district = _officer_district_name(request)
+    return Response(
+        ApplicantDetailSerializer(applicant, context={"district": district}).data
+    )
 
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
@@ -274,4 +299,240 @@ def resolve_alert_view(request, alert_id):
     alert.alert_status = "resolved"
     alert.save()
     # Note: resolution_note isn't persisted — no field/model exists for it yet.
+    return Response(AlertSerializer(alert).data)
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def flagged_permits_list(request):
+    flagged_permits = get_flagged_permits()
+    serialized = FullPermitSerializer(flagged_permits, many=True)
+    return Response(serialized.data)
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def flagged_projects_list(request):
+    flagged_projects = get_flagged_projects()
+    serialized = ProjectSerializer(flagged_projects, many=True)
+    return Response(serialized.data)
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def logout_view(request):
+    return Response({"detail": "Logged out."})
+
+from data_manipulation.models import Role, District
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def assigned_officers_view(request):
+    officers = User.objects.filter(
+        user_role__role_name=Role.RoleNames.MONITORING_OFFICER,
+        assigned_district__isnull=False,
+    )
+    return Response(OfficerSerializer(officers, many=True).data)
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def unassigned_officers_view(request):
+    officers = User.objects.filter(
+        user_role__role_name=Role.RoleNames.MONITORING_OFFICER,
+        assigned_district__isnull=True,
+    )
+    return Response(OfficerSerializer(officers, many=True).data)
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def officer_detail_view(request, officer_id):
+    officer = get_object_or_404(
+        User, pk=officer_id, user_role__role_name=Role.RoleNames.MONITORING_OFFICER
+    )
+    return Response(OfficerSerializer(officer).data)
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def district_coverage_view(request):
+    from data_manipulation.models import Property
+
+    known_names = set(District.objects.values_list("name", flat=True))
+    data_names = set(
+        Property.objects.exclude(property_district="")
+        .values_list("property_district", flat=True)
+        .distinct()
+    )
+    all_names = sorted(known_names | data_names)
+
+    data = []
+    for name in all_names:
+        district, _ = District.objects.get_or_create(name=name)
+        officer = User.objects.filter(
+            assigned_district=district, user_role__role_name=Role.RoleNames.MONITORING_OFFICER
+        ).first()
+        data.append({
+            "district": name,
+            "officer": OfficerSerializer(officer).data if officer else None,
+        })
+    return Response(data)
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def assign_officer_view(request, officer_id):
+    officer = get_object_or_404(
+        User, pk=officer_id, user_role__role_name=Role.RoleNames.MONITORING_OFFICER
+    )
+    district, _ = District.objects.get_or_create(name=request.data.get("district"))
+    officer.assigned_district = district
+    officer.save()
+    return Response(OfficerSerializer(officer).data)
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def create_officer_view(request):
+    data = request.data
+    officer_role = Role.objects.get(role_name=Role.RoleNames.MONITORING_OFFICER)
+    district = None
+    if data.get("district"):
+        district, _ = District.objects.get_or_create(name=data["district"])
+
+    officer = User(
+        user_email=data.get("email"),
+        user_name=data.get("name"),
+        user_phone=data.get("phone", ""),
+        user_role=officer_role,
+        user_status="active",
+        assigned_district=district,
+        username=data.get("email"),
+    )
+    # NOTE: the create-officer form doesn't collect a password. Using a
+    # fixed temporary one for now — decide on a real flow (invite email +
+    # set-password link, or admin-set password) before this goes anywhere near production.
+    officer.set_password("ChangeMe123!")
+    officer.save()
+    return Response(OfficerSerializer(officer).data, status=201)
+
+@api_view(["GET", "PATCH"])
+@permission_classes([IsAuthenticated])
+def officer_detail_view(request, officer_id):
+    officer = get_object_or_404(
+        User, pk=officer_id, user_role__role_name=Role.RoleNames.MONITORING_OFFICER
+    )
+    if request.method == "PATCH":
+        data = request.data
+        if "name" in data:
+            officer.user_name = data["name"]
+        if "phone" in data:
+            officer.user_phone = data["phone"]
+        if "email" in data:
+            officer.user_email = data["email"]
+        officer.save()
+    return Response(OfficerSerializer(officer).data)
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def unassign_officer_view(request, officer_id):
+    officer = get_object_or_404(
+        User, pk=officer_id, user_role__role_name=Role.RoleNames.MONITORING_OFFICER
+    )
+    officer.assigned_district = None
+    officer.save()
+    return Response(OfficerSerializer(officer).data)
+
+def _permit_base_queryset():
+    return Permit.objects.select_related(
+        "timeline", "applicant", "project", "project__property",
+        "project__financial_data", "project__property__zoning",
+        "architect", "engineer", "surveyor", "supervisor",
+    )
+
+def _officer_district_name(request):
+    """Returns the officer's district name if this user is a Monitoring
+    Officer with a district assigned, else None (meaning: no scoping)."""
+    user = request.user
+    role = user.user_role.role_name if user.user_role else None
+    if role == Role.RoleNames.MONITORING_OFFICER and user.assigned_district:
+        return user.assigned_district.name
+    return None
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def all_permit_data_view(request):
+    qs = _permit_base_queryset()
+    district = _officer_district_name(request)
+    if district:
+        qs = qs.filter(project__property__property_district=district)
+    return get_all_permits(qs)
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def all_full_permit_data_view(request):
+    qs = _permit_base_queryset()
+    district = _officer_district_name(request)
+    if district:
+        qs = qs.filter(project__property__property_district=district)
+    return get_all_full_permits(qs)
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def flagged_permits_list(request):
+    qs = Permit.objects.select_related("timeline", "supervisor", "project")
+    district = _officer_district_name(request)
+    if district:
+        qs = qs.filter(project__property__property_district=district)
+    flagged_permits = get_flagged_permits(qs)
+    return Response(FullPermitSerializer(flagged_permits, many=True).data)
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def pending_permit_data_view(request):
+    permits = Permit.objects.filter(
+        Q(timeline__isnull=True) | Q(timeline__status="Under review")
+    ).distinct()
+    district = _officer_district_name(request)
+    if district:
+        permits = permits.filter(project__property__property_district=district)
+    return Response(FullPermitSerializer(permits, many=True).data)
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def all_projects_view(request):
+    projects = Project.objects.select_related("property__zoning").all()
+    district = _officer_district_name(request)
+    if district:
+        projects = projects.filter(property__property_district=district)
+    return Response(ProjectSerializer(projects, many=True).data)
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def alerts_list_view(request):
+    alerts = Alert.objects.all()
+    district = _officer_district_name(request)
+    if district:
+        alerts = alerts.filter(project__property__property_district=district)
+    return Response(AlertSerializer(alerts, many=True).data)
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def resolve_alert_view(request, alert_id):
+    alert = get_object_or_404(Alert, pk=alert_id)
+    valid_statuses = {choice[0] for choice in Alert.STATUS_CHOICES}
+    new_status = request.data.get("status", "resolved")
+
+    if new_status not in valid_statuses:
+        return Response(
+            {"detail": f"Invalid status. Must be one of: {', '.join(sorted(valid_statuses))}."},
+            status=400,
+        )
+
+    note = (request.data.get("resolution_note") or "").strip()
+
+    alert.alert_status = new_status
+    alert.save()
+
+    if note:
+        AlertComment.objects.create(alert=alert, author=request.user, text=note)
+
     return Response(AlertSerializer(alert).data)
