@@ -55,19 +55,19 @@ export default function Statistics() {
   useEffect(load, []);
 
   const permitProvinceData = useMemo(
-    () => groupBy(permits, (p) => p?.property?.property_province),
+    () => groupBy(permits, (p) => p?.project?.property?.property_province),
     [permits]
   );
   const permitDistrictData = useMemo(
-    () => groupBy(permits, (p) => p?.property?.property_district),
+    () => groupBy(permits, (p) => p?.project?.property?.property_district),
     [permits]
   );
   const flaggedProvinceData = useMemo(
-    () => groupBy(flaggedPermits, (p) => p?.property?.property_province),
+    () => groupBy(flaggedPermits, (p) => p?.project?.property?.property_province),
     [flaggedPermits]
   );
   const flaggedDistrictData = useMemo(
-    () => groupBy(flaggedPermits, (p) => p?.property?.property_district),
+    () => groupBy(flaggedPermits, (p) => p?.project?.property?.property_district),
     [flaggedPermits]
   );
 
