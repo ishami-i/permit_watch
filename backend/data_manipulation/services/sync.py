@@ -12,14 +12,18 @@ from .api_call import fetch_permits
 from .populate_db import populate_database
 from .transformer import transform_permits
 
-logger = logging .getLogger(__name__)
+logger = logging.getLogger(__name__)
 
-def sync_permits(count=40):
+
+def sync_permits(count=40, offset=0):
     """
     Synchronize permits from the external API into the local database.
 
     Args:
-        count (int): Number of permits to fetch.
+        count (int): Number of permits to fetch this call.
+        offset (int): Starting index for the batch — pass the number of
+            permits already synced to fetch a genuinely new, non-
+            overlapping batch instead of re-fetching existing ones.
 
     Returns:
         dict:
@@ -31,33 +35,32 @@ def sync_permits(count=40):
             }
     """
     logger.info("Starting permit synchronization...")
+    permits = fetch_permits(count, offset=offset)
 
-    permits = fetch_permits(count)
     if permits is None:
         logger.error("Permit synchronization aborted: unable to fetch data")
-
         return {
             "fetched": 0,
             "created": 0,
             "updated": 0,
             "failed": 0,
         }
+
     if not permits:
         logger.info("API returned no permits.")
-
         return {
             "fetched": 0,
             "created": 0,
             "updated": 0,
             "failed": 0,
         }
+
     logger.info(
         "%d permits remaining after validation.",
         len(permits),
     )
 
     result = populate_database(permits)
-
     summary = {
         "fetched": len(permits),
         "created": result["created"],
