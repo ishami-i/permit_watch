@@ -76,16 +76,20 @@ def _build_timeline(submission_date):
     }
 
 
-def generate_permits(num_permits):
+def generate_permits(num_permits, offset=0):
     """
     Generate `num_permits` full permit records, each combining a property,
     professional team, applicant, project, timeline/status, and the
     supervisor assigned to that property's district.
+
+    `offset` shifts the sequential IDs (PERMIT-, PRJ-, PROP-) so repeated
+    calls with an increasing offset generate genuinely new, non-colliding
+    records instead of always restarting from #1.
     """
-    properties = generate_properties(num_permits)
+    properties = generate_properties(num_permits, offset=offset)
     professionals = generate_professionals(num_permits)
     applicants = generate_applicants(num_permits)
-    projects = generate_projects(num_permits)
+    projects = generate_projects(num_permits, offset=offset)
 
     permits = []
 
@@ -96,7 +100,7 @@ def generate_permits(num_permits):
         district = properties[i]["administrative_location"]["district"]
 
         permit = {
-            "permit_id": f"PERMIT-{i + 1:05d}",
+            "permit_id": f"PERMIT-{offset + i + 1:05d}",
             "timeline": timeline,
             "applicant": applicants[i],
             "professional": professionals[i],
