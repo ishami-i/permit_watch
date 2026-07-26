@@ -2,6 +2,8 @@
 file for model serializer
 """
 from rest_framework import serializers
+from django.contrib.auth import get_user_model
+
 from .models import (
     Applicant,
     Alert,
@@ -13,7 +15,9 @@ from .models import (
     Timeline,
     Supervisor,
     Zoning,
+    AlertComment,
 )
+User = get_user_model()
 
 
 class ApplicantSerializer(serializers.ModelSerializer):
@@ -128,6 +132,99 @@ class PermitSerializer(serializers.ModelSerializer):
         model = Permit
         fields = "__all__"
 
+class AlertCommentSerializer(serializers.ModelSerializer):
+    author = serializers.SerializerMethodField()
+
+    def get_author(self, obj):
+        return obj.author.user_name if obj.author else "Unknown"
+
+    class Meta:
+        model = AlertComment
+        fields = ["id", "author", "text", "created_at"]
+
+
+class AlertSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(source="alertId", read_only=True)
+    severity = serializers.CharField(source="alert_severity", read_only=True)
+    reason = serializers.CharField(source="alert_message", read_only=True)
+    status = serializers.CharField(source="alert_status", read_only=True)
+    district = serializers.SerializerMethodField()
+    assigned_officer = serializers.SerializerMethodField()
+    permit_id = serializers.SerializerMethodField()
+    evidence = serializers.SerializerMethodField()
+    timeline = serializers.SerializerMethodField()
+    comments = AlertCommentSerializer(source="comment_set", many=True, read_only=True)  # <-- changed
+
+    def get_district(self, obj):
+        if obj.supervisor and obj.supervisor.district:
+            return obj.supervisor.district
+        if obj.project and obj.project.property:
+            return obj.project.property.property_district
+        return None
+
+    def get_assigned_officer(self, obj):
+        if obj.monitoring_officer:
+            return {"id": obj.monitoring_officer.id, "name": obj.monitoring_officer.user_name}
+        return None
+
+    def get_permit_id(self, obj):
+        return obj.permit_id
+
+    def get_evidence(self, obj):
+        return None
+
+    def get_timeline(self, obj):
+        return []
+
+    class Meta:
+        model = Alert
+        fields = [
+            "id", "severity", "reason", "status", "district",
+            "assigned_officer", "permit_id", "evidence", "timeline",
+            "comments", "alert_timestamp",
+        ]
+
+class OfficerSerializer(serializers.ModelSerializer):
+    name = serializers.CharField(source="user_name", read_only=True)
+    email = serializers.EmailField(source="user_email", read_only=True)
+    phone = serializers.CharField(source="user_phone", read_only=True)
+    district = serializers.CharField(source="assigned_district.name", read_only=True, default=None)
+    # Permits/alerts aren't directly linked to officers in the schema —
+    # only Alert.monitoring_officer is. permit_count is therefore an
+    # approximation (distinct permits behind this officer's alerts).
+    permit_count = serializers.SerializerMethodField()
+    alert_count = serializers.SerializerMethodField()
+    performance_score = serializers.SerializerMethodField()
+
+    def get_alert_count(self, obj):
+        return obj.alerts.count()
+
+    def get_permit_count(self, obj):
+        return obj.alerts.values("permit_id").distinct().count()
+
+    def get_performance_score(self, obj):
+        return None  # no scoring model exists yet
+
+    class Meta:
+        model = User
+        fields = ["id", "name", "email", "phone", "district", "permit_count", "alert_count", "performance_score"]
+
+class ApplicantDetailSerializer(ApplicantSerializer):
+    permits = serializers.SerializerMethodField()
+    history = serializers.SerializerMethodField()
+
+    def get_permits(self, obj):
+        qs = obj.permits.select_related("project__property__zoning", "timeline")
+        district = self.context.get("district")
+        if district:
+            qs = qs.filter(project__property__property_district=district)
+        return PermitBriefSerializer(qs, many=True).data
+
+    def get_history(self, obj):
+        return []
+
+    class Meta(ApplicantSerializer.Meta):
+        fields = ApplicantSerializer.Meta.fields + ["permits", "history"]
 
 class FullPermitSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(source="permitId", read_only=True)
@@ -192,47 +289,50 @@ class ProjectDetailSerializer(ProjectSerializer):
     permits = PermitBriefSerializer(many=True, read_only=True)
 
 
-class AlertSerializer(serializers.ModelSerializer):
-    id = serializers.IntegerField(source="alertId", read_only=True)
-    severity = serializers.CharField(source="alert_severity", read_only=True)
-    reason = serializers.CharField(source="alert_message", read_only=True)
-    status = serializers.CharField(source="alert_status", read_only=True)
-    district = serializers.SerializerMethodField()
-    assigned_officer = serializers.SerializerMethodField()
-    permit_id = serializers.SerializerMethodField()
-    # No model fields exist yet for these — placeholders.
-    evidence = serializers.SerializerMethodField()
-    timeline = serializers.SerializerMethodField()
-    comments = serializers.SerializerMethodField()
+class FullPermitSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(source="permitId", read_only=True)
+    timeline = TimelineSerializer(read_only=True)
+    applicant = ApplicantSerializer(read_only=True)
+    project = ProjectSerializer(read_only=True)
+    architect = ProfessionalSerializer(read_only=True)
+    engineer = ProfessionalSerializer(read_only=True)
+    surveyor = ProfessionalSerializer(read_only=True)
+    supervisor = SupervisorSerializer(read_only=True)
+    alerts = AlertSerializer(many=True, read_only=True)   # <-- add this line
 
-    def get_district(self, obj):
-        if obj.supervisor and obj.supervisor.district:
-            return obj.supervisor.district
-        if obj.project and obj.project.property:
-            return obj.project.property.property_district
-        return None
+    status = serializers.SerializerMethodField()
+    submission_date = serializers.SerializerMethodField()
+    response_date = serializers.SerializerMethodField()
+    resubmission = serializers.SerializerMethodField()
 
-    def get_assigned_officer(self, obj):
-        if obj.monitoring_officer:
-            return {"id": obj.monitoring_officer.id, "name": obj.monitoring_officer.user_name}
-        return None
+    def get_status(self, obj):
+        return obj.timeline.status if hasattr(obj, "timeline") else None
 
-    def get_permit_id(self, obj):
-        return obj.permit_id
+    def get_submission_date(self, obj):
+        return obj.timeline.submission_date if hasattr(obj, "timeline") else None
 
-    def get_evidence(self, obj):
-        return None
+    def get_response_date(self, obj):
+        return obj.timeline.response_date if hasattr(obj, "timeline") else None
 
-    def get_timeline(self, obj):
-        return []
-
-    def get_comments(self, obj):
-        return []
+    def get_resubmission(self, obj):
+        return bool(obj.timeline.resubmission_date) if hasattr(obj, "timeline") else False
 
     class Meta:
-        model = Alert
+        model = Permit
         fields = [
-            "id", "severity", "reason", "status", "district",
-            "assigned_officer", "permit_id", "evidence", "timeline",
-            "comments", "alert_timestamp",
+            "id",
+            "permitId",
+            "external_permit_id",
+            "status",
+            "submission_date",
+            "response_date",
+            "resubmission",
+            "timeline",
+            "applicant",
+            "project",
+            "architect",
+            "engineer",
+            "surveyor",
+            "supervisor",
+            "alerts",   # <-- add this too
         ]
