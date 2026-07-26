@@ -58,42 +58,41 @@ def _find_monitoring_officer(permit):
 
     return User.objects.filter(
         user_role__role_name=Role.RoleNames.MONITORING_OFFICER,
-        assigned_district=permit.supervisor.district,
+        assigned_district__name=permit.supervisor.district,
     ).first()
 
 
-def check_flagged_permit(permit):
+def _flag_reason(permit):
     """
-    Check if a single permit should be flagged, based on its own
-    processing time and FIFO order within its comparison group.
-
-    Args:
-        permit: A Permit model instance.
+    Determine whether a permit should be flagged and, if so, why.
 
     Returns:
-        bool: True if the permit should be flagged, False otherwise.
+        str | None: a specific, human-readable reason if flagged,
+        otherwise None.
     """
     timeline = getattr(permit, "timeline", None)
     if timeline is None:
-        # Nothing to evaluate yet.
-        return False
+        return None
 
     submission_date = timeline.submission_date
     response_date = timeline.response_date
 
-    # Processing time check (independent of grouping).
     if response_date is None:
         days_pending = (timezone.now().date() - submission_date).days
         if days_pending > FIFO_AND_DELAY_THRESHOLD_DAYS:
-            return True
+            return (
+                f"Still awaiting a response after {days_pending} days "
+                f"(threshold: {FIFO_AND_DELAY_THRESHOLD_DAYS} days)."
+            )
     else:
         processing_time = (response_date - submission_date).days
         if processing_time > FIFO_AND_DELAY_THRESHOLD_DAYS:
-            return True
+            return (
+                f"Took {processing_time} days to receive a response "
+                f"(threshold: {FIFO_AND_DELAY_THRESHOLD_DAYS} days)."
+            )
 
-    # FIFO check within the comparison group.
     group = _comparison_group(permit).exclude(pk=permit.pk)
-
     for other in group:
         other_timeline = getattr(other, "timeline", None)
         if (
@@ -103,71 +102,72 @@ def check_flagged_permit(permit):
         ):
             continue
 
-        # This permit was submitted after `other` but answered first -
-        # it jumped the queue.
         if (
             submission_date > other_timeline.submission_date
             and response_date < other_timeline.response_date
         ):
-            return True
+            return f"FIFO violation: submitted after Permit #{other.pk} but answered first."
 
-        # This permit was submitted before `other` but answered after it -
-        # it was skipped over.
         if (
             submission_date < other_timeline.submission_date
             and response_date > other_timeline.response_date
         ):
-            return True
+            return f"FIFO violation: submitted before Permit #{other.pk} but was answered after it."
 
-    return False
+    return None
 
 
-def insert_flagged_permit(permit):
+def check_flagged_permit(permit):
+    """Boolean-only wrapper kept for compatibility with get_flagged_permits()."""
+    return _flag_reason(permit) is not None
+
+
+def insert_flagged_permit(permit, refresh=False):
     """
-    Create (or fetch the existing) Alert for a permit if it is flagged.
+    Create (or fetch/refresh the existing) Alert for a permit if it is flagged.
 
     Args:
         permit: A Permit model instance.
+        refresh: If True and an Alert already exists for this permit,
+            update its message/severity/officer to current values
+            instead of leaving it untouched.
 
     Returns:
         Alert | None: None if the permit is not currently flagged.
     """
-    if not check_flagged_permit(permit):
+    reason = _flag_reason(permit)
+    if reason is None:
         return None
 
     monitoring_officer = _find_monitoring_officer(permit)
 
-    alert, _ = Alert.objects.get_or_create(
+    alert, created = Alert.objects.get_or_create(
         permit=permit,
         project=permit.project,
-        alert_status="pending",
         defaults={
             "alert_severity": Alert.Severity.HIGH,
-            "alert_message": (
-                "FIFO violation or processing time exceeded "
-                f"{FIFO_AND_DELAY_THRESHOLD_DAYS} days."
-            ),
+            "alert_message": reason,
+            "alert_status": "pending",
             "supervisor": permit.supervisor,
             "monitoring_officer": monitoring_officer,
         },
     )
+
+    if not created and refresh:
+        alert.alert_message = reason
+        alert.monitoring_officer = monitoring_officer
+        # Deliberately NOT touching alert_status here — an officer may
+        # have already investigated/resolved/dismissed this, and a
+        # refresh shouldn't silently revert their work.
+        alert.save()
+
     return alert
 
-
-def get_flagged_permits():
-    """
-    Return every Permit that currently meets the flagging criteria.
-
-    Returns:
-        list[Permit]
-    """
-    return [
-        permit
-        for permit in Permit.objects.select_related(
-            "timeline", "supervisor", "project"
-        )
-        if check_flagged_permit(permit)
-    ]
+def get_flagged_permits(queryset=None):
+    base = queryset if queryset is not None else Permit.objects.select_related(
+        "timeline", "supervisor", "project"
+    )
+    return [permit for permit in base if check_flagged_permit(permit)]
 
 
 def get_flagged_projects():
@@ -185,3 +185,24 @@ def get_flagged_projects():
             seen.add(permit.project_id)
             projects.append(permit.project)
     return projects
+def flag_all_permits(refresh=False):
+    """
+    Run insert_flagged_permit() against every permit currently in the
+    system, persisting an Alert for each one that meets the flagging
+    criteria.
+
+    Args:
+        refresh: If True, also updates alert_message/monitoring_officer
+            on already-existing alerts to reflect current data.
+
+    Returns:
+        dict: {"checked": int, "flagged": int}
+    """
+    checked = 0
+    flagged = 0
+    for permit in Permit.objects.select_related("timeline", "supervisor", "project"):
+        checked += 1
+        alert = insert_flagged_permit(permit, refresh=refresh)
+        if alert:
+            flagged += 1
+    return {"checked": checked, "flagged": flagged}
