@@ -59,74 +59,24 @@ def get_full_permit_data(permit):
     )
 
 
-def get_all_permits():
-    """
-    Retrieve all permits from the database and return them as JSON.
-
-    Returns:
-        JsonResponse containing all permits.
-    """
-
-    permits = (
-    Permit.objects
-    .select_related(
-        "timeline",
-        "applicant",
-        "project",
-        "project__property",
-        "project__financial_data",
-        "project__property__zoning",
-        "architect",
-        "engineer",
-        "surveyor",
-        "supervisor",
+def get_all_permits(queryset=None):
+    permits = queryset if queryset is not None else (
+        Permit.objects.select_related(
+            "timeline", "applicant", "project", "project__property",
+            "project__financial_data", "project__property__zoning",
+            "architect", "engineer", "surveyor", "supervisor",
+        )
     )
-)
+    serialized_permits = serializer.PermitSerializer(permits, many=True)
+    return JsonResponse(serialized_permits.data, safe=False, status=200)
 
-    serialized_permits = serializer.PermitSerializer(
-        permits,
-        many=True
+def get_all_full_permits(queryset=None):
+    permits = queryset if queryset is not None else (
+        Permit.objects.select_related(
+            "timeline", "applicant", "project", "project__property",
+            "project__financial_data", "project__property__zoning",
+            "architect", "engineer", "surveyor", "supervisor",
+        )
     )
-
-    return JsonResponse(
-        serialized_permits.data,
-        safe=False,
-        status=200,
-    )
-
-
-def get_all_full_permits():
-    """
-    Retrieve all permits in the database along with their related objects and return them as JSON.
-
-    Returns:
-        JsonResponse containing all permits with applicants,
-        projects, architects, engineers, surveyors, and supervisors.
-    """
-
-    permits = (
-    Permit.objects
-    .select_related(
-        "timeline",
-        "applicant",
-        "project",
-        "project__property",
-        "project__financial_data",
-        "project__property__zoning",
-        "architect",
-        "engineer",
-        "surveyor",
-        "supervisor",
-    )
-)
-
-    serialized_permits = serializer.FullPermitSerializer(
-        permits,
-        many=True
-    )
-
-    return JsonResponse(
-        serialized_permits.data,
-        safe=False,
-        status=200,
-    )
+    serialized_permits = serializer.FullPermitSerializer(permits, many=True)
+    return JsonResponse(serialized_permits.data, safe=False, status=200)
