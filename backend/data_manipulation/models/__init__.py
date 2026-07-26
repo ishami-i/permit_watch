@@ -11,3 +11,4 @@ from .timeline import Timeline
 from .user import User
 from .zoning import Zoning
 from .district import District
+from .alert_comment import AlertComment
