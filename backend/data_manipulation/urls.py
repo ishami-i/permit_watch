@@ -31,4 +31,13 @@ urlpatterns = [
     path("alerts/", views.alerts_list_view, name="alerts"),
     path("alerts/<int:alert_id>/", views.alert_detail_view, name="alert"),
     path("alerts/<int:alert_id>/resolve/", views.resolve_alert_view, name="resolve_alert"),
+    path("auth/logout/", views.logout_view, name="logout"),
+
+    path("officers/assigned/", views.assigned_officers_view, name="officers_assigned"),
+    path("officers/unassigned/", views.unassigned_officers_view, name="officers_unassigned"),
+    path("officers/district-coverage/", views.district_coverage_view, name="district_coverage"),
+    path("officers/", views.create_officer_view, name="create_officer"),
+    path("officers/<int:officer_id>/", views.officer_detail_view, name="officer_detail"),
+    path("officers/<int:officer_id>/assign/", views.assign_officer_view, name="assign_officer"),
+    path("officers/<int:officer_id>/unassign/", views.unassign_officer_view, name="unassign_officer"),
 ]
