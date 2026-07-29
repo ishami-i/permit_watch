@@ -1,10 +1,39 @@
-from django.http import Http404, JsonResponse
+"""
+JSON API views for data_manipulation.
+
+Grouped into sections matching urls.py, in the same order — search for
+the ALL-CAPS section header for the resource you need (AUTH, DASHBOARD,
+PERMITS, PROJECTS, APPLICANTS, ALERTS, OFFICERS, DISTRICTS). Shared
+helpers live at the top, right after the imports.
+"""
+from django.contrib.auth import get_user_model
+from django.db.models import Count, Q
+from django.db.models.functions import TruncMonth
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
-# Import models cleanly from the core application package
-from data_manipulation.models import Permit, AlertComment
-# Import unified business logic service functions
+from rest_framework.response import Response
+
+from data_manipulation.models import (
+    Alert,
+    AlertComment,
+    Applicant,
+    District,
+    Permit,
+    Project,
+    Property,
+    Role,
+)
+from data_manipulation.serializer import (
+    AlertSerializer,
+    ApplicantDetailSerializer,
+    ApplicantSerializer,
+    FullPermitSerializer,
+    OfficerSerializer,
+    ProjectDetailSerializer,
+    ProjectSerializer,
+)
 from data_manipulation.services.flagged_project import (
     get_flagged_permits,
     get_flagged_projects,
@@ -16,128 +45,35 @@ from data_manipulation.services.get_permit import (
     get_full_permit_data,
     get_permit_data,
 )
-from data_manipulation.serializer import PermitSerializer, ProjectSerializer, OfficerSerializer
-from django.contrib.auth import get_user_model
-from rest_framework.response import Response
-from django.db.models import Count
-from django.contrib.auth import get_user_model
-from data_manipulation.models import Alert, Applicant, Project, District, Role
-from django.db.models import Q
-from data_manipulation.models import Applicant, Alert, Project
-from data_manipulation.serializer import (
-    ApplicantSerializer, ApplicantDetailSerializer,
-    ProjectDetailSerializer, AlertSerializer, FullPermitSerializer,
-)
-from django.db.models.functions import TruncMonth
-
 
 User = get_user_model()
 
-# JSON API Endpoints (Data Management)
-@api_view(["GET"])
-@permission_classes([IsAuthenticated])
-def permit_data_view(request, permit_id):
-    """
-    Fetches a single permit and returns its basic serialized JSON payload.
-    """
-    try:
-        permit = Permit.objects.get(pk=permit_id)
-    except Permit.DoesNotExist:
-        return JsonResponse({"error": "Permit not found"}, status=404)
 
-    return get_permit_data(permit)
+# ---------------------------------------------------------------------------
+# HELPERS
+# ---------------------------------------------------------------------------
 
-@api_view(["GET"])
-@permission_classes([IsAuthenticated])
-def all_permit_data_view(request):
-    """
-    Returns an aggregated list of all basic serialized permits in JSON format.
-    """
-    return get_all_permits()
+def _permit_base_queryset():
+    return Permit.objects.select_related(
+        "timeline", "applicant", "project", "project__property",
+        "project__financial_data", "project__property__zoning",
+        "architect", "engineer", "surveyor", "supervisor",
+    )
 
-@api_view(["GET"])
-@permission_classes([IsAuthenticated])
-def full_permit_data_view(request, permit_id):
-    """
-    Fetches a single permit with all extended relational dependencies in JSON format.
-    """
-    try:
-        permit = Permit.objects.get(pk=permit_id)
-    except Permit.DoesNotExist:
-        return JsonResponse({"error": "Permit not found"}, status=404)
 
-    return get_full_permit_data(permit)
+def _officer_district_name(request):
+    """Returns the officer's district name if this user is a Monitoring
+    Officer with a district assigned, else None (meaning: no scoping)."""
+    user = request.user
+    role = user.user_role.role_name if user.user_role else None
+    if role == Role.RoleNames.MONITORING_OFFICER and user.assigned_district:
+        return user.assigned_district.name
+    return None
 
-@api_view(["GET"])
-@permission_classes([IsAuthenticated])
-def all_full_permit_data_view(request):
-    """
-    Returns an aggregated list of all full permits along with related object histories.
-    """
-    return get_all_full_permits()
 
-# API Operations & Flagging Endpoints
-@api_view(["GET"])
-@permission_classes([IsAuthenticated])
-def flagged_permits_list(request):
-    """
-    Returns all permits currently violating system criteria as serialized JSON data.
-
-    get_flagged_permits() returns a plain list of Permit instances (it can't
-    be a queryset since flagging requires per-permit Python logic), so it
-    needs to go through the serializer rather than JsonResponse/.values().
-    """
-    flagged_permits = get_flagged_permits()
-
-    serialized = PermitSerializer(flagged_permits, many=True)
-
-    return JsonResponse({"flagged_permits": serialized.data})
-
-@api_view(["GET"])
-@permission_classes([IsAuthenticated])
-def flagged_projects_list(request):
-    """
-    Returns distinct projects containing flagged permits as a JSON payload.
-
-    get_flagged_projects() returns a plain list of Project instances, same
-    reasoning as above - these need to go through ProjectSerializer before
-    they're JSON-serializable.
-    """
-    flagged_projects = get_flagged_projects()
-
-    serialized = ProjectSerializer(flagged_projects, many=True)
-
-    return JsonResponse({"flagged_projects": serialized.data})
-@api_view(["GET"])
-@permission_classes([IsAuthenticated])
-def all_projects_view(request):
-    projects = Project.objects.select_related("property__zoning").all()
-    return Response(ProjectSerializer(projects, many=True).data)
-
-@api_view(["GET"])
-@permission_classes([IsAuthenticated])
-def trigger_permit_flag_check(request, permit_id):
-    """
-    Action endpoint to re-evaluate validation logic for a permit.
-    Returns status confirmation messages via JSON instead of redirects or HTML.
-    """
-    if request.method != "POST":
-        return JsonResponse({"error": "Method not allowed. Use POST."}, status=405)
-
-    permit = get_object_or_404(Permit, pk=permit_id)
-    alert = insert_flagged_permit(permit)
-
-    if alert:
-        return JsonResponse({
-            "status": "flagged",
-            "message": f"Alert generated successfully for Permit #{permit_id}.",
-            "alert_id": alert.alertId,
-        }, status=201)
-
-    return JsonResponse({
-        "status": "passed",
-        "message": f"Permit #{permit_id} does not violate constraints."
-    }, status=200)
+# ---------------------------------------------------------------------------
+# AUTH
+# ---------------------------------------------------------------------------
 
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
@@ -150,6 +86,17 @@ def current_user_view(request):
         "role": user.user_role.role_name.lower() if user.user_role else None,
         "district": user.assigned_district.name if user.assigned_district else None,
     })
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def logout_view(request):
+    return Response({"detail": "Logged out."})
+
+
+# ---------------------------------------------------------------------------
+# DASHBOARD
+# ---------------------------------------------------------------------------
 
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
@@ -246,6 +193,151 @@ def dashboard_summary_view(request):
             for a in Alert.objects.order_by("-alert_timestamp")[:5]
         ],
     })
+
+
+# ---------------------------------------------------------------------------
+# PERMITS
+# ---------------------------------------------------------------------------
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def permit_data_view(request, permit_id):
+    """Fetches a single permit and returns its basic serialized JSON payload."""
+    try:
+        permit = Permit.objects.get(pk=permit_id)
+    except Permit.DoesNotExist:
+        return JsonResponse({"error": "Permit not found"}, status=404)
+    return get_permit_data(permit)
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def all_permit_data_view(request):
+    """Returns an aggregated list of all basic serialized permits in JSON format,
+    scoped to the requesting officer's district if they have one assigned."""
+    qs = _permit_base_queryset()
+    district = _officer_district_name(request)
+    if district:
+        qs = qs.filter(project__property__property_district=district)
+    return get_all_permits(qs)
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def full_permit_data_view(request, permit_id):
+    """Fetches a single permit with all extended relational dependencies in JSON format."""
+    try:
+        permit = Permit.objects.get(pk=permit_id)
+    except Permit.DoesNotExist:
+        return JsonResponse({"error": "Permit not found"}, status=404)
+    return get_full_permit_data(permit)
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def all_full_permit_data_view(request):
+    """Returns an aggregated list of all full permits along with related
+    object histories, scoped to the requesting officer's district if any."""
+    qs = _permit_base_queryset()
+    district = _officer_district_name(request)
+    if district:
+        qs = qs.filter(project__property__property_district=district)
+    return get_all_full_permits(qs)
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def pending_permit_data_view(request):
+    permits = Permit.objects.filter(
+        Q(timeline__isnull=True) | Q(timeline__status="Under review")
+    ).distinct()
+    district = _officer_district_name(request)
+    if district:
+        permits = permits.filter(project__property__property_district=district)
+    return Response(FullPermitSerializer(permits, many=True).data)
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def flagged_permits_list(request):
+    """
+    Returns all permits currently violating system criteria as serialized
+    JSON data, scoped to the requesting officer's district if any.
+
+    get_flagged_permits() returns a plain list of Permit instances (it
+    can't be a queryset since flagging requires per-permit Python logic),
+    so it goes through the serializer rather than JsonResponse/.values().
+    """
+    qs = Permit.objects.select_related("timeline", "supervisor", "project")
+    district = _officer_district_name(request)
+    if district:
+        qs = qs.filter(project__property__property_district=district)
+    flagged_permits = get_flagged_permits(qs)
+    return Response(FullPermitSerializer(flagged_permits, many=True).data)
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def trigger_permit_flag_check(request, permit_id):
+    """
+    Action endpoint to re-evaluate validation logic for a permit.
+    Returns status confirmation messages via JSON instead of redirects or HTML.
+    """
+    permit = get_object_or_404(Permit, pk=permit_id)
+    alert = insert_flagged_permit(permit)
+
+    if alert:
+        return JsonResponse({
+            "status": "flagged",
+            "message": f"Alert generated successfully for Permit #{permit_id}.",
+            "alert_id": alert.alertId,
+        }, status=201)
+
+    return JsonResponse({
+        "status": "passed",
+        "message": f"Permit #{permit_id} does not violate constraints."
+    }, status=200)
+
+
+# ---------------------------------------------------------------------------
+# PROJECTS
+# ---------------------------------------------------------------------------
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def all_projects_view(request):
+    projects = Project.objects.select_related("property__zoning").all()
+    district = _officer_district_name(request)
+    if district:
+        projects = projects.filter(property__property_district=district)
+    return Response(ProjectSerializer(projects, many=True).data)
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def project_detail_view(request, project_id):
+    project = get_object_or_404(Project, pk=project_id)
+    return Response(ProjectDetailSerializer(project).data)
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def flagged_projects_list(request):
+    """
+    Returns distinct projects containing flagged permits as a JSON payload.
+
+    get_flagged_projects() returns a plain list of Project instances,
+    same reasoning as flagged_permits_list — these need to go through
+    ProjectSerializer before they're JSON-serializable.
+    """
+    flagged_projects = get_flagged_projects()
+    return Response(ProjectSerializer(flagged_projects, many=True).data)
+
+
+# ---------------------------------------------------------------------------
+# APPLICANTS
+# ---------------------------------------------------------------------------
+
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def all_applicants_view(request):
@@ -257,6 +349,7 @@ def all_applicants_view(request):
         ).distinct()
     return Response(ApplicantSerializer(applicants, many=True).data)
 
+
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def applicant_detail_view(request, applicant_id):
@@ -266,25 +359,20 @@ def applicant_detail_view(request, applicant_id):
         ApplicantDetailSerializer(applicant, context={"district": district}).data
     )
 
-@api_view(["GET"])
-@permission_classes([IsAuthenticated])
-def project_detail_view(request, project_id):
-    project = get_object_or_404(Project, pk=project_id)
-    return Response(ProjectDetailSerializer(project).data)
 
-@api_view(["GET"])
-@permission_classes([IsAuthenticated])
-def pending_permit_data_view(request):
-    permits = Permit.objects.filter(
-        Q(timeline__isnull=True) | Q(timeline__status="Under review")
-    ).distinct()
-    return Response(FullPermitSerializer(permits, many=True).data)
+# ---------------------------------------------------------------------------
+# ALERTS
+# ---------------------------------------------------------------------------
 
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def alerts_list_view(request):
     alerts = Alert.objects.all()
+    district = _officer_district_name(request)
+    if district:
+        alerts = alerts.filter(project__property__property_district=district)
     return Response(AlertSerializer(alerts, many=True).data)
+
 
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
@@ -292,34 +380,34 @@ def alert_detail_view(request, alert_id):
     alert = get_object_or_404(Alert, pk=alert_id)
     return Response(AlertSerializer(alert).data)
 
+
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def resolve_alert_view(request, alert_id):
     alert = get_object_or_404(Alert, pk=alert_id)
-    alert.alert_status = "resolved"
+    valid_statuses = {choice[0] for choice in Alert.STATUS_CHOICES}
+    new_status = request.data.get("status", "resolved")
+
+    if new_status not in valid_statuses:
+        return Response(
+            {"detail": f"Invalid status. Must be one of: {', '.join(sorted(valid_statuses))}."},
+            status=400,
+        )
+
+    note = (request.data.get("resolution_note") or "").strip()
+
+    alert.alert_status = new_status
     alert.save()
-    # Note: resolution_note isn't persisted — no field/model exists for it yet.
+
+    if note:
+        AlertComment.objects.create(alert=alert, author=request.user, text=note)
+
     return Response(AlertSerializer(alert).data)
-@api_view(["GET"])
-@permission_classes([IsAuthenticated])
-def flagged_permits_list(request):
-    flagged_permits = get_flagged_permits()
-    serialized = FullPermitSerializer(flagged_permits, many=True)
-    return Response(serialized.data)
 
-@api_view(["GET"])
-@permission_classes([IsAuthenticated])
-def flagged_projects_list(request):
-    flagged_projects = get_flagged_projects()
-    serialized = ProjectSerializer(flagged_projects, many=True)
-    return Response(serialized.data)
 
-@api_view(["POST"])
-@permission_classes([IsAuthenticated])
-def logout_view(request):
-    return Response({"detail": "Logged out."})
-
-from data_manipulation.models import Role, District
+# ---------------------------------------------------------------------------
+# OFFICERS / MONITORING
+# ---------------------------------------------------------------------------
 
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
@@ -330,6 +418,7 @@ def assigned_officers_view(request):
     )
     return Response(OfficerSerializer(officers, many=True).data)
 
+
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def unassigned_officers_view(request):
@@ -339,49 +428,24 @@ def unassigned_officers_view(request):
     )
     return Response(OfficerSerializer(officers, many=True).data)
 
-@api_view(["GET"])
+
+@api_view(["GET", "PATCH"])
 @permission_classes([IsAuthenticated])
 def officer_detail_view(request, officer_id):
     officer = get_object_or_404(
         User, pk=officer_id, user_role__role_name=Role.RoleNames.MONITORING_OFFICER
     )
+    if request.method == "PATCH":
+        data = request.data
+        if "name" in data:
+            officer.user_name = data["name"]
+        if "phone" in data:
+            officer.user_phone = data["phone"]
+        if "email" in data:
+            officer.user_email = data["email"]
+        officer.save()
     return Response(OfficerSerializer(officer).data)
 
-@api_view(["GET"])
-@permission_classes([IsAuthenticated])
-def district_coverage_view(request):
-    from data_manipulation.models import Property
-
-    known_names = set(District.objects.values_list("name", flat=True))
-    data_names = set(
-        Property.objects.exclude(property_district="")
-        .values_list("property_district", flat=True)
-        .distinct()
-    )
-    all_names = sorted(known_names | data_names)
-
-    data = []
-    for name in all_names:
-        district, _ = District.objects.get_or_create(name=name)
-        officer = User.objects.filter(
-            assigned_district=district, user_role__role_name=Role.RoleNames.MONITORING_OFFICER
-        ).first()
-        data.append({
-            "district": name,
-            "officer": OfficerSerializer(officer).data if officer else None,
-        })
-    return Response(data)
-
-@api_view(["POST"])
-@permission_classes([IsAuthenticated])
-def assign_officer_view(request, officer_id):
-    officer = get_object_or_404(
-        User, pk=officer_id, user_role__role_name=Role.RoleNames.MONITORING_OFFICER
-    )
-    district, _ = District.objects.get_or_create(name=request.data.get("district"))
-    officer.assigned_district = district
-    officer.save()
-    return Response(OfficerSerializer(officer).data)
 
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
@@ -408,22 +472,18 @@ def create_officer_view(request):
     officer.save()
     return Response(OfficerSerializer(officer).data, status=201)
 
-@api_view(["GET", "PATCH"])
+
+@api_view(["POST"])
 @permission_classes([IsAuthenticated])
-def officer_detail_view(request, officer_id):
+def assign_officer_view(request, officer_id):
     officer = get_object_or_404(
         User, pk=officer_id, user_role__role_name=Role.RoleNames.MONITORING_OFFICER
     )
-    if request.method == "PATCH":
-        data = request.data
-        if "name" in data:
-            officer.user_name = data["name"]
-        if "phone" in data:
-            officer.user_phone = data["phone"]
-        if "email" in data:
-            officer.user_email = data["email"]
-        officer.save()
+    district, _ = District.objects.get_or_create(name=request.data.get("district"))
+    officer.assigned_district = district
+    officer.save()
     return Response(OfficerSerializer(officer).data)
+
 
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
@@ -435,104 +495,30 @@ def unassign_officer_view(request, officer_id):
     officer.save()
     return Response(OfficerSerializer(officer).data)
 
-def _permit_base_queryset():
-    return Permit.objects.select_related(
-        "timeline", "applicant", "project", "project__property",
-        "project__financial_data", "project__property__zoning",
-        "architect", "engineer", "surveyor", "supervisor",
+
+# ---------------------------------------------------------------------------
+# DISTRICTS
+# ---------------------------------------------------------------------------
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def district_coverage_view(request):
+    known_names = set(District.objects.values_list("name", flat=True))
+    data_names = set(
+        Property.objects.exclude(property_district="")
+        .values_list("property_district", flat=True)
+        .distinct()
     )
+    all_names = sorted(known_names | data_names)
 
-def _officer_district_name(request):
-    """Returns the officer's district name if this user is a Monitoring
-    Officer with a district assigned, else None (meaning: no scoping)."""
-    user = request.user
-    role = user.user_role.role_name if user.user_role else None
-    if role == Role.RoleNames.MONITORING_OFFICER and user.assigned_district:
-        return user.assigned_district.name
-    return None
-
-
-@api_view(["GET"])
-@permission_classes([IsAuthenticated])
-def all_permit_data_view(request):
-    qs = _permit_base_queryset()
-    district = _officer_district_name(request)
-    if district:
-        qs = qs.filter(project__property__property_district=district)
-    return get_all_permits(qs)
-
-
-@api_view(["GET"])
-@permission_classes([IsAuthenticated])
-def all_full_permit_data_view(request):
-    qs = _permit_base_queryset()
-    district = _officer_district_name(request)
-    if district:
-        qs = qs.filter(project__property__property_district=district)
-    return get_all_full_permits(qs)
-
-
-@api_view(["GET"])
-@permission_classes([IsAuthenticated])
-def flagged_permits_list(request):
-    qs = Permit.objects.select_related("timeline", "supervisor", "project")
-    district = _officer_district_name(request)
-    if district:
-        qs = qs.filter(project__property__property_district=district)
-    flagged_permits = get_flagged_permits(qs)
-    return Response(FullPermitSerializer(flagged_permits, many=True).data)
-
-
-@api_view(["GET"])
-@permission_classes([IsAuthenticated])
-def pending_permit_data_view(request):
-    permits = Permit.objects.filter(
-        Q(timeline__isnull=True) | Q(timeline__status="Under review")
-    ).distinct()
-    district = _officer_district_name(request)
-    if district:
-        permits = permits.filter(project__property__property_district=district)
-    return Response(FullPermitSerializer(permits, many=True).data)
-
-
-@api_view(["GET"])
-@permission_classes([IsAuthenticated])
-def all_projects_view(request):
-    projects = Project.objects.select_related("property__zoning").all()
-    district = _officer_district_name(request)
-    if district:
-        projects = projects.filter(property__property_district=district)
-    return Response(ProjectSerializer(projects, many=True).data)
-
-
-@api_view(["GET"])
-@permission_classes([IsAuthenticated])
-def alerts_list_view(request):
-    alerts = Alert.objects.all()
-    district = _officer_district_name(request)
-    if district:
-        alerts = alerts.filter(project__property__property_district=district)
-    return Response(AlertSerializer(alerts, many=True).data)
-
-@api_view(["POST"])
-@permission_classes([IsAuthenticated])
-def resolve_alert_view(request, alert_id):
-    alert = get_object_or_404(Alert, pk=alert_id)
-    valid_statuses = {choice[0] for choice in Alert.STATUS_CHOICES}
-    new_status = request.data.get("status", "resolved")
-
-    if new_status not in valid_statuses:
-        return Response(
-            {"detail": f"Invalid status. Must be one of: {', '.join(sorted(valid_statuses))}."},
-            status=400,
-        )
-
-    note = (request.data.get("resolution_note") or "").strip()
-
-    alert.alert_status = new_status
-    alert.save()
-
-    if note:
-        AlertComment.objects.create(alert=alert, author=request.user, text=note)
-
-    return Response(AlertSerializer(alert).data)
+    data = []
+    for name in all_names:
+        district, _ = District.objects.get_or_create(name=name)
+        officer = User.objects.filter(
+            assigned_district=district, user_role__role_name=Role.RoleNames.MONITORING_OFFICER
+        ).first()
+        data.append({
+            "district": name,
+            "officer": OfficerSerializer(officer).data if officer else None,
+        })
+    return Response(data)

@@ -2,9 +2,7 @@ from django.urls import path
 from . import views
 from rest_framework_simplejwt.views import TokenRefreshView
 
-# use whichever of these actually exists on disk — delete the other import
 from .auth_views import CustomTokenObtainPairView
-# from .auth_serializers import CustomTokenObtainPairView
 
 urlpatterns = [
     # Auth
