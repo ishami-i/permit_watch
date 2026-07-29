@@ -1,131 +1,390 @@
 #!/usr/bin/env bash
-# Quick-run script for the permit_watch Django backend.
-#
-# Usage:
-#   ./run.sh                    setup + migrate + start dev server
-#   ./run.sh sync [count]       setup + migrate + sync permits from the API (default count: 40)
-#   ./run.sh flag [--refresh]   setup + migrate + evaluate/persist flagged-permit Alerts
-#   ./run.sh shell               setup + migrate + open Django shell
-#   ./run.sh createsuperuser     setup + migrate + create a Django admin/superuser
-#   ./run.sh fresh                wipe db.sqlite3 AND stale migrations, then start the dev server
-#   ./run.sh -h | --help          show this help
-#
-# Place this file in the backend/ directory (next to manage.py).
 
 set -euo pipefail
-cd "$(dirname "$0")"
 
-VENV_DIR=".venv"
-PYTHON_BIN="python3"
-APP_NAME="data_manipulation"
+###############################################################################
+# Permit Watch Development Runner
+#
+# Starts:
+#   - Flask API simulator (5000)
+#   - Django backend (8000)
+#   - React/Vite frontend (5173)
+###############################################################################
 
-usage() {
-    sed -n '2,12p' "$0" | sed 's/^# \{0,1\}//'
+ROOT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+API_DIR="$ROOT_DIR/api_simulation"
+BACKEND_DIR="$ROOT_DIR/backend"
+FRONTEND_DIR="$ROOT_DIR/frontend"
+
+VENV_DIR="$ROOT_DIR/.venv"
+
+PYTHON_BIN=python3
+API_PORT=5000
+BACKEND_PORT=8000
+APP_NAME=data_manipulation
+
+PIDS=()
+
+###############################################################################
+# cleanup
+###############################################################################
+
+cleanup() {
+    echo
+
+    if [ "${#PIDS[@]}" -gt 0 ]; then
+        echo "==> Stopping background services..."
+
+        for pid in "${PIDS[@]}"; do
+            kill "$pid" 2>/dev/null || true
+        done
+
+        wait 2>/dev/null || true
+    fi
 }
 
-if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
+trap cleanup EXIT INT TERM
+
+###############################################################################
+# help
+###############################################################################
+
+usage() {
+
+cat <<EOF
+
+Permit Watch Development Runner
+
+Usage:
+
+./quick_run.sh
+./quick_run.sh run
+./quick_run.sh backend
+./quick_run.sh api
+./quick_run.sh frontend
+./quick_run.sh sync [count]
+./quick_run.sh sync-loop [count] [interval]
+./quick_run.sh flag [--refresh]
+./quick_run.sh shell
+./quick_run.sh createsuperuser
+./quick_run.sh fresh
+
+EOF
+
+}
+
+MODE="${1:-run}"
+shift || true
+
+if [[ "$MODE" == "-h" || "$MODE" == "--help" ]]; then
     usage
     exit 0
 fi
 
-# --- 0. sanity checks ------------------------------------------------------
-if ! command -v "$PYTHON_BIN" >/dev/null 2>&1; then
-    echo "ERROR: $PYTHON_BIN not found on PATH. Install Python 3 and try again." >&2
-    exit 1
-fi
+###############################################################################
+# prerequisites
+###############################################################################
 
-if [ ! -f "manage.py" ]; then
-    echo "ERROR: manage.py not found. Run this script from (or place it in) the backend/ directory." >&2
+command -v "$PYTHON_BIN" >/dev/null || {
+    echo "Python3 not installed."
     exit 1
-fi
+}
 
-# --- 1. venv -----------------------------------------------------------
+command -v npm >/dev/null || {
+    echo "npm is not installed."
+    exit 1
+}
+
+###############################################################################
+# venv
+###############################################################################
+
 if [ ! -d "$VENV_DIR" ]; then
-    echo "==> Creating virtual environment ($VENV_DIR)..."
+    echo "==> Creating virtual environment..."
     "$PYTHON_BIN" -m venv "$VENV_DIR"
 fi
-# shellcheck disable=SC1091
+
+# shellcheck source=/dev/null
 source "$VENV_DIR/bin/activate"
 
-# --- 2. dependencies -----------------------------------------------------
-if [ -f "requirements.txt" ]; then
-    echo "==> Installing dependencies from requirements.txt..."
-    pip install -q --upgrade pip
-    pip install -q -r requirements.txt
-else
-    echo "==> No requirements.txt found, installing minimal set..."
-    pip install -q --upgrade pip
-    pip install -q django python-dotenv requests djangorestframework djangorestframework-simplejwt django-cors-headers
+###############################################################################
+# install python dependencies
+###############################################################################
+
+echo "==> Installing Python dependencies..."
+
+python -m pip install --upgrade pip
+
+if [ -f "$ROOT_DIR/requirements.txt" ]; then
+    pip install -r "$ROOT_DIR/requirements.txt"
 fi
 
-# --- 3. .env -------------------------------------------------------------
-if [ ! -f ".env" ]; then
-    echo "==> Creating default .env (edit as needed)..."
-    cat > .env <<'EOF'
+###############################################################################
+# backend env
+###############################################################################
+
+if [ ! -f "$BACKEND_DIR/.env" ]; then
+
+cat > "$BACKEND_DIR/.env" <<EOF
 DJANGO_SECRET_KEY=django-insecure-change-me
 PERMIT_API_URL=http://127.0.0.1:5000/api/permits
 EOF
+
 fi
 
-# --- 4. mode / args --------------------------------------------------------
-MODE="${1:-run}"
-shift || true
+###############################################################################
+# migrations
+###############################################################################
 
-# --- 5. optional fresh reset ----------------------------------------------
-if [ "$MODE" = "fresh" ]; then
-    echo "==> [fresh] Removing db.sqlite3 and stale migrations for '$APP_NAME'..."
-    read -r -p "This deletes your local database and migration files. Continue? [y/N] " CONFIRM
-    if [[ ! "$CONFIRM" =~ ^[Yy]$ ]]; then
-        echo "Aborted."
-        exit 1
-    fi
-    rm -f db.sqlite3
-    find "$APP_NAME/migrations" -type f -name "*.py" ! -name "__init__.py" -delete
-    echo "==> Regenerating migrations..."
-    python manage.py makemigrations
-    MODE="run"
-fi
+echo "==> Running migrations..."
 
-# --- 6. makemigrations + migrate -------------------------------------------
-echo "==> Checking for model changes..."
-python manage.py makemigrations "$APP_NAME" --check --dry-run >/dev/null 2>&1 || {
-    echo "==> Model changes detected, generating migrations..."
-    python manage.py makemigrations "$APP_NAME"
-}
+(
+cd "$BACKEND_DIR"
 
-echo "==> Applying migrations..."
+python manage.py makemigrations "$APP_NAME"
 python manage.py migrate
 
-# --- 7. dispatch -----------------------------------------------------------
+)
+
+###############################################################################
+# helper functions
+###############################################################################
+
+port_in_use() {
+
+python - <<END
+import socket
+
+s=socket.socket()
+
+print(
+0 if s.connect_ex(("127.0.0.1",$1))==0 else 1
+)
+END
+
+}
+
+wait_for_port() {
+
+PORT=$1
+
+for i in {1..30}; do
+
+python - <<END
+import socket
+import sys
+
+s=socket.socket()
+
+sys.exit(
+0 if s.connect_ex(("127.0.0.1",$PORT))==0 else 1
+)
+END
+
+if [ $? -eq 0 ]; then
+return
+fi
+
+sleep .25
+
+done
+
+echo "Timed out waiting for port $PORT"
+
+}
+
+###############################################################################
+# start api
+###############################################################################
+
+start_api(){
+
+if lsof -i :"$API_PORT" >/dev/null 2>&1
+then
+echo "==> API simulator already running."
+return
+fi
+
+echo "==> Starting API simulator..."
+
+(
+cd "$API_DIR"
+python api_server.py
+) &
+
+PIDS+=($!)
+
+wait_for_port "$API_PORT"
+
+}
+
+###############################################################################
+# frontend
+###############################################################################
+
+start_frontend(){
+
+if [ ! -d "$FRONTEND_DIR/node_modules" ]; then
+
+echo "==> Installing frontend packages..."
+
+(
+cd "$FRONTEND_DIR"
+
+npm install --legacy-peer-deps
+
+)
+
+fi
+
+echo "==> Starting Vite..."
+
+(
+cd "$FRONTEND_DIR"
+
+npm run dev
+
+)&
+
+PIDS+=($!)
+
+}
+
+###############################################################################
+# dispatch
+###############################################################################
+
 case "$MODE" in
-    run)
-        echo "==> Starting dev server at http://127.0.0.1:8000 ..."
-        python manage.py runserver
-        ;;
-    sync)
-        COUNT="${1:-40}"
-        echo "==> Syncing $COUNT permits from the external API..."
-        python manage.py sync_permits --count "$COUNT"
-        ;;
-    flag)
-        REFRESH_FLAG=""
-        if [[ "${1:-}" == "--refresh" ]]; then
-            REFRESH_FLAG="--refresh"
-        fi
-        echo "==> Evaluating permits against flagging rules..."
-        python manage.py flag_permits $REFRESH_FLAG
-        ;;
-    shell)
-        echo "==> Opening Django shell..."
-        python manage.py shell
-        ;;
-    createsuperuser)
-        echo "==> Creating a superuser..."
-        python manage.py createsuperuser
-        ;;
-    *)
-        echo "Unknown mode: $MODE" >&2
-        usage
-        exit 1
-        ;;
+
+run)
+
+start_api
+
+start_frontend
+
+echo
+echo "==> Starting Django..."
+
+cd "$BACKEND_DIR"
+
+python manage.py runserver "$BACKEND_PORT"
+
+;;
+
+backend)
+
+cd "$BACKEND_DIR"
+
+python manage.py runserver "$BACKEND_PORT"
+
+;;
+
+api)
+
+cd "$API_DIR"
+
+python api_server.py
+
+;;
+
+frontend)
+
+start_frontend
+
+wait
+
+;;
+
+sync)
+
+COUNT="${1:-100}"
+
+start_api
+
+cd "$BACKEND_DIR"
+
+python manage.py sync_permits --count "$COUNT"
+
+;;
+
+sync-loop)
+
+COUNT="${1:-100}"
+
+INTERVAL="${2:-300}"
+
+start_api
+
+while true
+do
+
+cd "$BACKEND_DIR"
+
+python manage.py sync_permits --count "$COUNT"
+
+sleep "$INTERVAL"
+
+done
+
+;;
+
+flag)
+
+REFRESH=""
+
+if [[ "${1:-}" == "--refresh" ]]; then
+REFRESH="--refresh"
+fi
+
+cd "$BACKEND_DIR"
+
+python manage.py flag_permits $REFRESH
+
+;;
+
+shell)
+
+cd "$BACKEND_DIR"
+
+python manage.py shell
+
+;;
+
+createsuperuser)
+
+cd "$BACKEND_DIR"
+
+python manage.py createsuperuser
+
+;;
+
+fresh)
+
+echo "Removing database..."
+
+rm -f "$BACKEND_DIR/db.sqlite3"
+
+find "$BACKEND_DIR/$APP_NAME/migrations" \
+-type f \
+-name "*.py" \
+! -name "__init__.py" \
+-delete
+
+cd "$BACKEND_DIR"
+
+python manage.py makemigrations "$APP_NAME"
+
+python manage.py migrate
+
+;;
+
+*)
+
+usage
+
+exit 1
+
+;;
+
 esac

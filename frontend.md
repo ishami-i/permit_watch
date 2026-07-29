@@ -67,7 +67,7 @@ src/
 ## Roles
 
 - `chief_ombudsman` / `deputy_ombudsman` — full `DashboardLayout`, access to
-  Monitoring, Users, Audit Logs, Settings.
+  Monitoring, Users, Settings.
 - `monitoring_officer` — simplified `MonitoringLayout`, scoped to
   dashboard/permits/alerts/profile.
 
