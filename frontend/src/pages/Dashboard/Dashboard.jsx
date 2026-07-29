@@ -42,13 +42,13 @@ export default function Dashboard() {
   ];
 
   return (
-    <div className="mx-auto max-w-7xl space-y-10 px-6 py-8">
+    <div className="mx-auto max-w-7xl space-y-8 px-4 py-6 sm:space-y-10 sm:px-6 sm:py-8">
       <div>
         <h1 className="text-2xl font-bold text-[var(--text-900)]">Dashboard</h1>
         <p className="text-sm text-[var(--text-700)]">National overview of permits and monitoring.</p>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-5">
         {cards.map((card) => (
           <SummaryCard key={card.label} {...card} />
         ))}

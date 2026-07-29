@@ -11,6 +11,10 @@ export const ROLES = {
 
 export const ADMIN_ROLES = [ROLES.CHIEF, ROLES.DEPUTY, ROLES.CHIEF_ALT];
 
+// Backend role strings have inconsistent casing (e.g. "Chief_Ombudsman" vs
+// "monitoring_officer"), so always compare roles case-insensitively.
+export const normalizeRole = (role) => role?.toLowerCase();
+
 export default function ProtectedRoute({ allowedRoles }) {
   const { user, loading } = useAuth();
   const location = useLocation();
@@ -21,8 +25,10 @@ export default function ProtectedRoute({ allowedRoles }) {
     return <Navigate to="/login" replace state={{ from: location }} />;
   }
 
-  if (allowedRoles && !allowedRoles.includes(user.role)) {
-    console.log("DEBUG role check:", { userRole: user.role, allowedRoles });
+  if (
+    allowedRoles &&
+    !allowedRoles.map(normalizeRole).includes(normalizeRole(user.role))
+  ) {
     return <Navigate to="/unauthorized" replace />;
   }
 

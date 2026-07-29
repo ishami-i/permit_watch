@@ -41,9 +41,6 @@ export const DISTRICT_COVERAGE_URL = `${API_BASE_URL}/officers/district-coverage
 export const USER_API_URL = `${API_BASE_URL}/users/`;
 export const USER_API_ID_URL = `${API_BASE_URL}/users/{user_id}/`;
 
-// Audit
-export const AUDIT_LOG_URL = `${API_BASE_URL}/audit-logs/`;
-
 // Statistics / dashboard
 export const STATISTICS_URL = `${API_BASE_URL}/statistics/`;
 export const DASHBOARD_SUMMARY_URL = `${API_BASE_URL}/dashboard/summary/`;

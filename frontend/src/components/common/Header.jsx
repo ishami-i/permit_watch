@@ -2,7 +2,7 @@ import { NavLink, useNavigate } from "react-router-dom";
 import ToolbarThemeToggle from "./ToolbarThemeToggle";
 import { useAuth } from "../../context/AuthContext";
 
-export default function Header() {
+export default function Header({ onMenuClick }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -13,18 +13,44 @@ export default function Header() {
 
   return (
     <header className="sticky top-0 z-40 border-b border-[var(--background-200)] bg-[var(--background-50)] shadow-sm backdrop-blur">
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
-        <NavLink to="/dashboard" className="flex items-center gap-3">
-          <img
-            src="/logo.png"
-            alt="Office of the Ombudsman Logo"
-            className="h-10 w-10 object-contain"
-          />
-          <div>
-            <h1 className="text-lg font-bold text-[var(--text-900)]">Permit Watch</h1>
-            <p className="text-xs text-[var(--text-700)]">Office of the Ombudsman</p>
-          </div>
-        </NavLink>
+      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
+        <div className="flex items-center gap-2">
+          {onMenuClick && (
+            <button
+              type="button"
+              onClick={onMenuClick}
+              aria-label="Open navigation menu"
+              className="-ml-2 mr-1 rounded-md p-2 text-[var(--text-700)] hover:bg-[var(--background-100)] md:hidden"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="h-6 w-6"
+              >
+                <line x1="4" y1="6" x2="20" y2="6" />
+                <line x1="4" y1="12" x2="20" y2="12" />
+                <line x1="4" y1="18" x2="20" y2="18" />
+              </svg>
+            </button>
+          )}
+
+          <NavLink to="/dashboard" className="flex items-center gap-3">
+            <img
+              src="/logo.png"
+              alt="Office of the Ombudsman Logo"
+              className="h-10 w-10 object-contain"
+            />
+            <div>
+              <h1 className="text-lg font-bold text-[var(--text-900)]">Permit Watch</h1>
+              <p className="text-xs text-[var(--text-700)]">Office of the Ombudsman</p>
+            </div>
+          </NavLink>
+        </div>
 
         <div className="flex items-center gap-4">
           <ToolbarThemeToggle />

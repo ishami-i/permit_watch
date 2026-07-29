@@ -36,7 +36,6 @@ import OfficerProfile from "./pages/Monitoring/OfficerProfile";
 import Users from "./pages/Users/Users";
 import UserDetails from "./pages/Users/UserDetails";
 
-import AuditLogs from "./pages/Audit/AuditLogs";
 import Settings from "./pages/Settings/Settings";
 import Profile from "./pages/Profile/Profile";
 
@@ -88,7 +87,6 @@ function App() {
             <Route path="/users" element={<Users />} />
             <Route path="/users/:id" element={<UserDetails />} />
 
-            <Route path="/audit" element={<AuditLogs />} />
             <Route path="/settings" element={<Settings />} />
           </Route>
         </Route>
