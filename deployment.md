@@ -166,7 +166,7 @@ confirmed working, issue a certificate with certbot:
 
 ```bash
 sudo apt install -y certbot python3-certbot-nginx
-sudo certbot --nginx -d your-domain.example
+sudo certbot --nginx -d https://permit-watch.ishami.tech/
 ```
 
 Certbot rewrites the nginx server block to redirect HTTP → HTTPS and sets
