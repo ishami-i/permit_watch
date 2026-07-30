@@ -61,7 +61,6 @@ permit_watch/
 
 - User registration and authentication
 - Permit application tracking
-- Public reporting of permit-related issues
 - Transparency dashboard
 - Notifications on permit status
 - Administrative management portal
