@@ -1,6 +1,6 @@
 # PermitWatch Rwanda Platform
 
-PermitWatch Rwanda is a civic technology platform designed to improve transparency and accountability in government permit and licensing processes. The platform enables citizens to report permit-related issues, monitor application progress, and access public information about permits, helping reduce corruption and increase public trust.
+PermitWatch Rwanda is a civic technology platform designed to improve transparency and accountability in government permit and licensing processes. The platform enables office ombudsman to monitor application progress, and access public information about permits, helping reduce corruption and increase public trust.
 
 ## Live Deployment
 
