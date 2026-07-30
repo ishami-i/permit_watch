@@ -8,6 +8,7 @@ PermitWatch Rwanda is a civic technology platform designed to improve transparen
 permit_watch/
 ├── README.md
 ├── backend.md
+├── deployment.md
 ├── api_documentation.md
 ├── api_simulation.md
 ├── frontend.md
@@ -22,7 +23,11 @@ permit_watch/
 ├── backend/                   # Django backend
 │   ├── manage.py
 │   ├── config/                 # Django project settings
-│   └── data_manipulation/      # Main Django app (models, sync, flagging)
+│   └── data_manipulation/      # Main Django app
+│       ├── models/              # permit, auth, and alert models
+│       ├── services/            # sync, flagging, auth business logic
+│       ├── management/commands/ # sync_permits, flag_permits
+│       └── scheduler.py         # in-process job scheduler
 ├── frontend/                  # React + Vite user interface
 │   ├── src/
 │   └── public/
@@ -55,7 +60,7 @@ permit_watch/
 
 ### Backend
 - Django + Django REST Framework
-- gunicorn as the production WSGI server, run behind nginx
+- gunicorn as the production WSGI server, run behind nginx (add `gunicorn` to `requirements.txt` if it isn't already there)
 
 ### Database
 - SQLite (development)
@@ -68,6 +73,7 @@ permit_watch/
 Project documentation lives at the repo root, next to `README.md`:
 
 - **[`backend.md`](backend.md)** — Django backend structure, configuration, data model, and management commands
+- **[`deployment.md`](deployment.md)** — installing and running this on a server behind nginx (systemd, nginx config, HTTPS, redeploying)
 - **[`api_documentation.md`](api_documentation.md)** — full reference for the simulated permit API (endpoints, permit object shape, error responses)
 - **[`api_simulation.md`](api_simulation.md)** — design notes on how the simulation is built
 - **[`frontend.md`](frontend.md)** — frontend structure, roles, and what it expects from the backend API
@@ -97,7 +103,7 @@ What it does, in order:
 
 1. Creates/reuses a single shared virtual environment at `.venv/` and installs `requirements.txt`
 2. Creates `logs/` (`logs/api_simulation.log`, `logs/backend.log`) if it doesn't exist
-3. Creates `backend/.env` (from `backend/.env.example` if present, otherwise a minimal default with a freshly generated `SECRET_KEY`) if it doesn't already exist
+3. Creates `backend/.env` (from `backend/.env.example` if present, otherwise a minimal default with a freshly generated `DJANGO_SECRET_KEY`) if it doesn't already exist
 4. Runs Django migrations
 5. Runs `collectstatic` so Django's static assets are ready for nginx
 6. Installs frontend packages (first run only) and builds the React app to `frontend/dist` — nginx should point at this directory directly rather than a dev server
@@ -108,15 +114,11 @@ Press `Ctrl+C` to stop the backend; the API simulator is shut down along with it
 
 Re-run `quick_run.sh` on every deploy (or wire it into your deploy pipeline) to reapply migrations, rebuild the frontend, and restart the backend.
 
+Running it directly in a terminal is fine for testing, but on a real server you'll want systemd managing it so it survives reboots and SSH disconnects — see [`deployment.md`](deployment.md#4-run-it-as-a-service-systemd).
+
 ### nginx
 
-Point nginx at:
-
-- `frontend/dist/` for the built frontend, served as static files
-- a reverse proxy to `127.0.0.1:8000` for the Django backend
-- Django's collected static files directory (`STATIC_ROOT` in `backend/config/settings.py`) for `/static/`
-
-The Flask API simulator (port 5000) is internal only — the backend talks to it directly via `PERMIT_API_URL`; nginx should never expose it publicly.
+See [`deployment.md`](deployment.md#5-nginx) for a full server block. In short, nginx should serve `frontend/dist/` as static files, reverse-proxy `/api/` and `/admin/` to `127.0.0.1:8000`, and serve `/static/` from Django's `STATIC_ROOT`. The Flask API simulator (port 5000) is internal only — the backend talks to it directly via `PERMIT_API_URL`; nginx should never expose it publicly.
 
 ### Manual setup
 
@@ -137,7 +139,10 @@ gunicorn config.wsgi:application --bind 127.0.0.1:8000
 
 #### API simulator
 
+Uses the same shared `.venv` as the backend — no separate environment:
+
 ```bash
+source .venv/bin/activate   # from the repo root; skip if already active in this shell
 cd api_simulation
 python api_server.py
 ```
@@ -163,7 +168,7 @@ python manage.py createsuperuser            # create an admin account
 python manage.py shell
 ```
 
-For scheduled syncing in production, put `sync_permits` on cron / Celery Beat / a Kubernetes CronJob — see `synchronisation.md`.
+For scheduled syncing, `data_manipulation/scheduler.py` can run these jobs in-process, or you can put `sync_permits` on cron / Celery Beat / a Kubernetes CronJob instead — see `synchronisation.md`.
 
 ## Development Status
 

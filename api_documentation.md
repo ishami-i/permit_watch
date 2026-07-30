@@ -195,7 +195,12 @@ The Django backend maps this shape onto its own models when syncing — see
 
 ## Running the server
 
+Uses the same shared `.venv` at the repo root as the Django backend —
+there's no separate environment for the simulator:
+
 ```bash
+python3 -m venv .venv            # only if .venv doesn't exist yet
+source .venv/bin/activate
 pip install -r requirements.txt
 python api_simulation/api_server.py
 ```
