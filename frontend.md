@@ -4,10 +4,24 @@ Refactored/completed build based on the original architecture plan and code dump
 
 ## Setup
 
+Development:
+
 ```bash
 npm install
 npm run dev
 ```
+
+Production (this is what `quick_run.sh` runs at the repo root):
+
+```bash
+npm install --legacy-peer-deps
+npm run build   # outputs to dist/, which nginx serves as static files
+```
+
+The build reads `API_BASE_URL` from `src/config.js` — point it at the
+deployed Django backend's URL before building for production. See the root
+[`README.md`](README.md#nginx) for how nginx is expected to serve `dist/`
+alongside the backend.
 
 Add your logo at `public/logo.png` (referenced by Header, AuthLayout, ErrorLayout).
 
@@ -73,7 +87,9 @@ src/
 
 `ProtectedRoute` (in `components/common/`) reads the role from `AuthContext`
 and redirects unauthenticated users to `/login`, or unauthorized ones to
-`/unauthorized`.
+`/unauthorized`. See [`backend.md`](backend.md#9-roles) — the backend needs
+to enforce these same roles server-side, not just in the frontend's route
+guards.
 
 ## Backend contract
 
@@ -82,4 +98,7 @@ Every service function assumes a JSON REST API at `VITE`-style
 page (e.g. `getDashboardSummary()` expects `total_permits`,
 `permits_by_province`, `recent_permits`, etc. — see
 `pages/Dashboard/Dashboard.jsx` for the full shape). Adjust endpoint paths
-in `config.js` to match your actual backend.
+in `config.js` to match your actual backend. See [`backend.md`](backend.md)
+for the Django side of this contract, and
+[`api_documentation.md`](api_documentation.md#permit-object) for the shape
+of the underlying permit data.

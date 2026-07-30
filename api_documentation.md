@@ -1,6 +1,19 @@
 # PermitWatch Simulation API
 
-Since, this is project directly based on the KUBAKA System which is the used system in every contraction related permits, where the engineers, project owners, and architects apply for contraction permits and Rwanda Housing Authority, which controls it and manage it, approves the contraction permits. This is Simulation to allow the whole PermitWatch to work with realistic contraction simulation.
+This project is modeled on the KUBAKA system — the platform used in Rwanda
+for construction-related permits, where engineers, project owners, and
+architects apply for construction permits and the Rwanda Housing Authority
+reviews and approves them. Since we don't have access to KUBAKA itself,
+this is a simulation that lets the rest of PermitWatch work against
+realistic construction-permit data. See [`api_simulation.md`](api_simulation.md)
+for how the simulator is built; this document is the request/response
+reference.
+
+> **Internal only.** This server is meant to be reached by the Django
+> backend (`PERMIT_API_URL`, see [`backend.md`](backend.md#4-configuration)),
+> not by the public internet. When deployed behind nginx, nginx should
+> proxy the Django backend and the frontend build — never this port
+> directly. See the root [`README.md`](README.md#nginx).
 
 ## Base URL
 
@@ -56,10 +69,10 @@ GET /api/permits?count=25
 **Error responses**
 
 | Status | Condition                   | Body                                                     |
-| ------ | --------------------------- | -------------------------------------------------------- |
-| `400`  | `count` is not an integer   | `{"error": "'count' must be an integer, got '<value>'"}` |
-| `400`  | `count` is zero or negative | `{"error": "'count' must be a positive integer"}`        |
-| `400`  | `count` exceeds `500`       | `{"error": "'count' cannot exceed 500"}`                 |
+| ------ | ---------------------------- | -------------------------------------------------------- |
+| `400`  | `count` is not an integer    | `{"error": "'count' must be an integer, got '<value>'"}` |
+| `400`  | `count` is zero or negative  | `{"error": "'count' must be a positive integer"}`        |
+| `400`  | `count` exceeds `500`        | `{"error": "'count' cannot exceed 500"}`                 |
 
 ---
 
@@ -175,6 +188,9 @@ Each element of the array returned by `/api/permits` has this shape:
 
 **`supervisor`** — the government supervisor assigned to the property's district, or `null` if no supervisor record covers that district.
 
+The Django backend maps this shape onto its own models when syncing — see
+[`backend.md`](backend.md#5-data-model) for the model-level breakdown.
+
 ---
 
 ## Running the server
@@ -184,10 +200,15 @@ pip install -r requirements.txt
 python api_simulation/api_server.py
 ```
 
+Or run `./quick_run.sh` at the repo root, which starts this alongside the
+rest of the stack automatically. `requirements.txt` lives at the repo
+root and is shared by the simulator and the Django backend — there's no
+separate requirements file inside `api_simulation/`.
+
 Environment variables (all optional):
 
 | Variable      | Default   | Purpose                                  |
-| ------------- | --------- | ---------------------------------------- |
+| ------------- | --------- | ----------------------------------------- |
 | `FLASK_DEBUG` | `false`   | set to `true` to enable Flask debug mode |
 | `HOST`        | `0.0.0.0` | interface to bind to                     |
 | `PORT`        | `5000`    | port to listen on                        |
@@ -195,32 +216,19 @@ Environment variables (all optional):
 ## Project layout
 
 ```
-api_simulation
-├── __pycache__
-│   └── routes.cpython-314.pyc
+api_simulation/
 ├── api_server.py
-├── data_generator
-│   ├── __init__.py
-│   ├── __pycache__
-│   │   ├── __init__.cpython-314.pyc
-│   │   ├── applicant.cpython-314.pyc
-│   │   ├── permit.cpython-314.pyc
-│   │   ├── professional.cpython-314.pyc
-│   │   ├── project.cpython-314.pyc
-│   │   ├── property.cpython-314.pyc
-│   │   └── supervisor.cpython-314.pyc
-│   ├── applicant.py
-│   ├── permit.py
-│   ├── professional.py
-│   ├── project.py
-│   ├── property.py
-│   └── supervisor.py
-├── requirement.txt
 ├── routes.py
-└── sample_data
+├── data_generator/
+│   ├── __init__.py
+│   ├── applicant.py
+│   ├── permit.py
+│   ├── professional.py
+│   ├── project.py
+│   ├── property.py
+│   └── supervisor.py
+└── sample_data/
     ├── location.json
     ├── names.json
     └── supervisors.json
-
-5 directories, 21 files
 ```
