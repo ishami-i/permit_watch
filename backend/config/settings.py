@@ -28,7 +28,7 @@ SECRET_KEY = os.getenv(
 )# SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["permit-watch.ishami.tech", "127.0.0.1", "localhost"]
 
 
 # Application definition
@@ -141,4 +141,5 @@ PERMIT_API_URL = os.getenv(
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
+    "https://permit-watch.ishami.tech",
 ]
