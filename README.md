@@ -1,6 +1,6 @@
 # PermitWatch Rwanda Platform
 
-PermitWatch Rwanda is a civic technology platform designed to improve transparency and accountability in government permit and licensing processes. The platform enables citizens to report permit-related issues, monitor application progress, and access public information about permits, helping reduce corruption and increase public trust.
+PermitWatch Rwanda is a civic technology platform designed to improve transparency and accountability in government permit and licensing processes. The platform enables office of ombudsman to monitor application progress, and access public information about permits, helping reduce corruption and increase public trust.
 
 ## Project Structure
 
@@ -45,7 +45,6 @@ permit_watch/
 
 - User registration and authentication
 - Permit application tracking
-- Public reporting of permit-related issues
 - Transparency dashboard
 - Notifications on permit status
 - Administrative management portal
@@ -179,8 +178,12 @@ Current progress includes:
 - UML diagrams
 - System architecture
 - Flask API simulator for local development
-- Backend development (ongoing)
-- Frontend development (ongoing)
+- Backend development
+- Frontend development
+
+## About the deployed version
+### Forget password
+for now the forget password in not working, but since the project is going to be build and introduced to people in charge to care it will be there
 
 ## Team
 
