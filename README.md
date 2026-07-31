@@ -183,7 +183,16 @@ Current progress includes:
 
 ## About the deployed version
 ### Forget password
-for now the forget password in not working, but since the project is going to be build and introduced to people in charge to care it will be there
+for now the forget password in not working, but since the project is going to be build and introduced to people in charge to this solution.
+
+### logins for deployed version
+> All test users share the same default password: `Passw0rd!2026`
+
+| Role | Email Format | Scope | Example |
+| :--- | :--- | :--- | :--- |
+| **Chief Ombudsman** | `chief@permitwatch.rw` | National | `chief@permitwatch.rw` |
+| **Deputy Ombudsman** | `deputy@permitwatch.rw` | National | `deputy@permitwatch.rw` |
+| **Monitoring Officer** | `office.<district_name>@permitwatch.rw` | District-Specific | `office.gasabo@permitwatch.rw` |
 
 ## Team
 
