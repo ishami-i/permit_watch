@@ -13,8 +13,13 @@ permit_watch/
 ├── api_simulation.md
 ├── frontend.md
 ├── synchronisation.md
-├── quick_run.sh               # One-shot setup + run script (nginx-ready)
-├── requirements.txt           # Python dependencies (shared by backend + API simulator)
+├── quick_run.sh                # One-shot setup + run script (nginx-ready)
+├── local_quick-run.sh           
+├── requirements.txt          # Python dependencies (shared by backend + API simulator)
+├── logs/
+│   ├── backend.log
+│   ├── api_simulation.log
+│   └── frontend.log
 ├── api_simulation/            # Flask API simulator (mock permit data source)
 │   ├── api_server.py
 │   ├── routes.py
@@ -22,6 +27,7 @@ permit_watch/
 │   └── sample_data/
 ├── backend/                   # Django backend
 │   ├── manage.py
+│   ├── seed_test_users.py      # the seed data used in testing and creating the users
 │   ├── config/                 # Django project settings
 │   └── data_manipulation/      # Main Django app
 │       ├── models/              # permit, auth, and alert models
@@ -90,14 +96,18 @@ cd permit_watch
 ```
 
 ### Quick start
+```local_quick-run.sh``` and ```quick_run.sh``` are the file for running whole application in one bash run, the local one is ```local_quick-run.sh``` and the ```quick_run.sh``` for deployed version of application. they work the same.
 
-`quick_run.sh` does everything in one pass — no subcommands, nothing to remember. Run it and it sets up and starts the whole stack, ready to sit behind nginx:
-
+#### For Deployed version
 ```bash
 chmod +x quick_run.sh
 ./quick_run.sh
 ```
-
+#### For local version
+```bash
+chmod +x quick_run.sh
+./local_quick-run.sh
+```
 What it does, in order:
 
 1. Creates/reuses a single shared virtual environment at `.venv/` and installs `requirements.txt`
