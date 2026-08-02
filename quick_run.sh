@@ -1,22 +1,9 @@
 #!/bin/bash
 
-<<<<<<< HEAD
 # PermitWatch Rwanda - Quick Start (Deployment Script version)
 set -Eeuo pipefail
 
 # Colors
-=======
-###############################################################################
-# PermitWatch Rwanda - Quick Start / Deployment Script
-###############################################################################
-
-set -Eeuo pipefail
-
-################################################################################
-# Colors
-################################################################################
-
->>>>>>> 1c7a7fb9485c1f6f1bdee942253d1e0b6575ac64
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -28,28 +15,14 @@ print_success() { echo -e "${GREEN}✓${NC} $1"; }
 print_warning() { echo -e "${YELLOW}⚠${NC} $1"; }
 print_error()   { echo -e "${RED}✗${NC} $1"; }
 
-<<<<<<< HEAD
 # Banner
-=======
-################################################################################
-# Banner
-################################################################################
-
->>>>>>> 1c7a7fb9485c1f6f1bdee942253d1e0b6575ac64
 echo
 echo "╔══════════════════════════════════════════════════════════════╗"
 echo "║               PermitWatch Rwanda Deployment                 ║"
 echo "╚══════════════════════════════════════════════════════════════╝"
 echo
 
-<<<<<<< HEAD
 # Directories
-=======
-################################################################################
-# Directories
-################################################################################
-
->>>>>>> 1c7a7fb9485c1f6f1bdee942253d1e0b6575ac64
 ROOT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 API_DIR="$ROOT_DIR/api_simulation"
@@ -65,14 +38,7 @@ BACKEND_PORT="${BACKEND_PORT:-8000}"
 
 APP_NAME="data_manipulation"
 
-<<<<<<< HEAD
 # Cleanup
-=======
-################################################################################
-# Cleanup
-################################################################################
-
->>>>>>> 1c7a7fb9485c1f6f1bdee942253d1e0b6575ac64
 cleanup() {
 
     if [[ -f "$PID_FILE" ]]; then
@@ -92,39 +58,45 @@ cleanup() {
 
 trap cleanup EXIT INT TERM
 
-<<<<<<< HEAD
 # Detect Python
 print_step "Locating Python..."
 
-=======
-################################################################################
-# Detect Python
-################################################################################
+# Prefer the newest specific interpreter available. Bare `python`/`python3`
+# can resolve to whatever the system default is (e.g. Ubuntu's stock 3.8),
+# even when a newer version (e.g. via pyenv) is installed and was used to
+# build an existing venv. Checking versioned names first avoids silently
+# downgrading to an interpreter that can't satisfy requirements.txt.
+#
+# Also explicitly add common pyenv shim locations to PATH for this lookup.
+# Non-interactive contexts (systemd services, cron, etc.) don't source
+# ~/.bashrc/~/.profile, so pyenv's PATH additions never happen there even
+# though they work fine in an interactive shell -- causing `python3.12` to
+# silently resolve to the system interpreter instead. Without this, a venv
+# built interactively (correctly, under 3.12) will look "broken" every time
+# this script is run under systemd, purely because of a PATH difference,
+# not any actual problem with the venv.
+for pyenv_root in "$HOME/.pyenv" "/home/ubuntu/.pyenv" "/opt/pyenv"; do
+    if [[ -d "$pyenv_root/shims" ]]; then
+        PATH="$pyenv_root/shims:$PATH"
+    fi
+done
 
-print_step "Locating Python..."
-
->>>>>>> 1c7a7fb9485c1f6f1bdee942253d1e0b6575ac64
-if command -v python >/dev/null 2>&1; then
-    PYTHON=$(command -v python)
-else
-    PYTHON=$(command -v python3)
-fi
+PYTHON=""
+for candidate in python3.13 python3.12 python3.11 python3.10 python3.9 python3 python; do
+    if command -v "$candidate" >/dev/null 2>&1; then
+        PYTHON=$(command -v "$candidate")
+        break
+    fi
+done
 
 if [[ -z "$PYTHON" ]]; then
     print_error "Python not found."
     exit 1
 fi
 
-print_success "$($PYTHON --version)"
+print_success "$($PYTHON --version) ($PYTHON)"
 
-<<<<<<< HEAD
 # Virtual Environment
-=======
-################################################################################
-# Virtual Environment
-################################################################################
-
->>>>>>> 1c7a7fb9485c1f6f1bdee942253d1e0b6575ac64
 if [[ ! -f "$VENV_DIR/bin/activate" ]]; then
 
     print_warning "Virtual environment missing."
@@ -133,7 +105,14 @@ if [[ ! -f "$VENV_DIR/bin/activate" ]]; then
 
     print_step "Creating virtual environment..."
 
-    "$PYTHON" -m venv "$VENV_DIR"
+    # --copies: physically copy the interpreter binary into .venv/bin
+    # instead of symlinking it. When the interpreter used here is a pyenv
+    # shim (a dispatch script, not a real symlink), venv's normal symlink
+    # creation can end up pointing bin/python (and even bin/python3.X) at
+    # the wrong underlying binary -- e.g. the system Python instead of the
+    # pyenv one that was actually selected. Copying removes that ambiguity
+    # entirely: whatever is in .venv/bin is guaranteed to be the real thing.
+    "$PYTHON" -m venv "$VENV_DIR" --copies
 
 fi
 
@@ -141,37 +120,61 @@ print_step "Activating virtual environment..."
 
 source "$VENV_DIR/bin/activate"
 
-print_success "Virtual environment activated."
+# Always call the venv's own interpreter by absolute path from here on.
+# Relying on bare `python`/`pip` after activation is fragile: if the venv
+# was built from a python3.X that doesn't drop a plain `python` symlink in
+# bin/, PATH lookups for `python` can silently fall back to the system
+# interpreter while `pip` (whose shebang hardcodes the venv's python)
+# keeps working correctly -- producing exactly this kind of split-brain
+# install where pip and python disagree about site-packages.
+# Always call the venv's own interpreter by absolute path from here on,
+# and prefer the *versioned* binary (e.g. python3.12) over the generic
+# `python`/`python3` symlinks. Some venvs end up with `python`/`python3`
+# pointing at the system interpreter instead of the one that actually
+# built the venv (a known quirk with certain pyenv/venv combinations) --
+# the versioned name is the one guaranteed to match what was used to
+# install packages.
+PY_BASENAME="$(basename "$PYTHON")"
+if [[ -x "$VENV_DIR/bin/$PY_BASENAME" ]]; then
+    PYVENV="$VENV_DIR/bin/$PY_BASENAME"
+else
+    PYVENV="$VENV_DIR/bin/python"
+fi
 
-<<<<<<< HEAD
-# Upgrade pip
-=======
-################################################################################
-# Upgrade pip
-################################################################################
+if [[ ! -x "$PYVENV" ]]; then
+    print_error "Venv python not found at $PYVENV"
+    exit 1
+fi
 
->>>>>>> 1c7a7fb9485c1f6f1bdee942253d1e0b6575ac64
+print_success "Virtual environment activated ($($PYVENV --version), using $PYVENV)."
+
+# Sanity check: the venv's interpreter should be the same version as the
+# one we detected and used to build it. If not, something upstream (venv
+# creation, a stray symlink, a pre-existing .venv) is inconsistent -- fail
+# loudly here rather than silently installing packages under the wrong
+# Python and hitting confusing errors several steps later.
+EXPECTED_VER="$($PYTHON -c 'import sys; print("%d.%d" % sys.version_info[:2])')"
+ACTUAL_VER="$($PYVENV -c 'import sys; print("%d.%d" % sys.version_info[:2])')"
+if [[ "$EXPECTED_VER" != "$ACTUAL_VER" ]]; then
+    print_error "Version mismatch: detected Python $EXPECTED_VER but venv is using $ACTUAL_VER ($PYVENV)."
+    print_error "Try: rm -rf \"$VENV_DIR\" && rerun this script."
+    exit 1
+fi
+
+# Upgrade pip
 print_step "Upgrading pip..."
 
-python -m pip install --upgrade pip setuptools wheel
+"$PYVENV" -m pip install --upgrade pip setuptools wheel
 
-<<<<<<< HEAD
 # Python Packages
-=======
-################################################################################
-# Python Packages
-################################################################################
-
->>>>>>> 1c7a7fb9485c1f6f1bdee942253d1e0b6575ac64
 if [[ -f "$ROOT_DIR/requirements.txt" ]]; then
 
     print_step "Installing Python packages..."
 
-    pip install -r "$ROOT_DIR/requirements.txt"
+    "$PYVENV" -m pip install -r "$ROOT_DIR/requirements.txt"
 
 fi
 
-<<<<<<< HEAD
 # Logs
 mkdir -p "$LOG_DIR"
 
@@ -180,22 +183,6 @@ touch \
 "$LOG_DIR/backend.log"
 
 # Backend .env
-=======
-################################################################################
-# Logs
-################################################################################
-
-mkdir -p "$LOG_DIR"
-
-touch \
-"$LOG_DIR/api_simulation.log" \
-"$LOG_DIR/backend.log"
-
-################################################################################
-# Backend .env
-################################################################################
-
->>>>>>> 1c7a7fb9485c1f6f1bdee942253d1e0b6575ac64
 if [[ ! -f "$BACKEND_DIR/.env" ]]; then
 
     print_warning ".env missing."
@@ -207,7 +194,7 @@ if [[ ! -f "$BACKEND_DIR/.env" ]]; then
     else
 
 cat > "$BACKEND_DIR/.env" <<EOF
-SECRET_KEY=$(python - <<PY
+SECRET_KEY=$("$PYVENV" - <<PY
 from django.core.management.utils import get_random_secret_key
 print(get_random_secret_key())
 PY
@@ -222,47 +209,58 @@ EOF
 
 fi
 
-<<<<<<< HEAD
 # Django
-=======
-################################################################################
-# Django
-################################################################################
->>>>>>> 1c7a7fb9485c1f6f1bdee942253d1e0b6575ac64
 
 cd "$BACKEND_DIR"
 
 print_step "Running migrations..."
 
-python manage.py makemigrations "$APP_NAME" --noinput
+"$PYVENV" manage.py makemigrations "$APP_NAME" --noinput
 
-python manage.py migrate --noinput
+"$PYVENV" manage.py migrate --noinput
 
 print_success "Database ready."
 
-<<<<<<< HEAD
 # Static
-=======
-################################################################################
-# Static
-################################################################################
->>>>>>> 1c7a7fb9485c1f6f1bdee942253d1e0b6575ac64
 
 print_step "Collecting static files..."
 
-python manage.py collectstatic --noinput --clear
+"$PYVENV" manage.py collectstatic --noinput --clear
 
 print_success "Static files collected."
 
-<<<<<<< HEAD
 # Frontend
-=======
-################################################################################
-# Frontend
-################################################################################
->>>>>>> 1c7a7fb9485c1f6f1bdee942253d1e0b6575ac64
 
 cd "$FRONTEND_DIR"
+
+SKIP_FRONTEND_BUILD="${SKIP_FRONTEND_BUILD:-0}"
+
+if [[ "$SKIP_FRONTEND_BUILD" != "1" ]]; then
+
+    if ! command -v npm >/dev/null 2>&1; then
+
+        print_error "npm not found, cannot build frontend."
+        print_error "Install Node/npm, or set SKIP_FRONTEND_BUILD=1 to reuse an existing frontend/dist."
+
+        exit 1
+
+    fi
+
+    print_step "Installing frontend dependencies..."
+
+    npm install
+
+    print_step "Building frontend..."
+
+    npm run build
+
+    print_success "Frontend build complete."
+
+else
+
+    print_warning "SKIP_FRONTEND_BUILD=1 set, reusing existing frontend/dist without rebuilding."
+
+fi
 
 if [[ ! -d dist ]]; then
 
@@ -274,48 +272,47 @@ if [[ ! -d dist ]]; then
 
 fi
 
-print_success "Using prebuilt frontend."
+print_success "Using frontend build."
 
-<<<<<<< HEAD
 # API Simulator
-=======
-################################################################################
-# API Simulator
-################################################################################
->>>>>>> 1c7a7fb9485c1f6f1bdee942253d1e0b6575ac64
 
 cd "$API_DIR"
 
 print_step "Starting API simulator..."
 
-nohup python api_server.py \
+nohup "$PYVENV" api_server.py \
 >> "$LOG_DIR/api_simulation.log" 2>&1 &
 
-echo $! > "$PID_FILE"
+# Capture the PID directly into a variable rather than round-tripping it
+# through the PID file. Re-reading the file a few seconds later (via
+# `PID=$(cat "$PID_FILE")`) is an unnecessary dependency: if that read
+# ever fails for any reason, the command substitution's failure trips
+# `set -e` and kills the whole script with no diagnostic output at all --
+# which is exactly the silent death this replaces. The file is still
+# written, for `cleanup()` and any future manual inspection, but liveness
+# checks below no longer depend on it existing or being readable.
+API_PID=$!
+echo "$API_PID" > "$PID_FILE"
 
 sleep 3
 
-PID=$(cat "$PID_FILE")
+if [[ ! -f "$PID_FILE" ]]; then
+    print_warning "PID file $PID_FILE unexpectedly missing after write (continuing anyway, using in-memory PID $API_PID)."
+fi
 
-if ! kill -0 "$PID" 2>/dev/null; then
+if ! kill -0 "$API_PID" 2>/dev/null; then
 
-    print_error "API simulator crashed."
+    print_error "API simulator crashed (PID $API_PID)."
 
-    cat "$LOG_DIR/api_simulation.log"
+    tail -n 50 "$LOG_DIR/api_simulation.log"
 
     exit 1
 
 fi
 
-print_success "API simulator running."
+print_success "API simulator running (PID $API_PID)."
 
-<<<<<<< HEAD
 # Test API
-=======
-################################################################################
-# Test API
-################################################################################
->>>>>>> 1c7a7fb9485c1f6f1bdee942253d1e0b6575ac64
 
 if command -v curl >/dev/null 2>&1; then
 
@@ -333,13 +330,7 @@ if command -v curl >/dev/null 2>&1; then
 
 fi
 
-<<<<<<< HEAD
 # Summary
-=======
-################################################################################
-# Summary
-################################################################################
->>>>>>> 1c7a7fb9485c1f6f1bdee942253d1e0b6575ac64
 
 echo
 echo "=============================================================="
@@ -352,13 +343,7 @@ echo "API Sim  : http://127.0.0.1:${API_PORT}"
 echo "=============================================================="
 echo
 
-<<<<<<< HEAD
 # Start Backend
-=======
-################################################################################
-# Start Backend
-################################################################################
->>>>>>> 1c7a7fb9485c1f6f1bdee942253d1e0b6575ac64
 
 cd "$BACKEND_DIR"
 
@@ -376,17 +361,11 @@ else
 
     print_warning "Gunicorn not found."
 
-    exec python manage.py runserver 0.0.0.0:${BACKEND_PORT}
+    exec "$PYVENV" manage.py runserver 0.0.0.0:${BACKEND_PORT}
 
 fi
 
-<<<<<<< HEAD
 # Cleanup
-=======
-################################################################################
-# Cleanup
-################################################################################
->>>>>>> 1c7a7fb9485c1f6f1bdee942253d1e0b6575ac64
 
 cleanup() {
     print_step "Stopping API simulator..."
@@ -403,8 +382,4 @@ cleanup() {
     fi
 }
 
-<<<<<<< HEAD
 trap cleanup SIGTERM SIGINT EXIT
-=======
-trap cleanup SIGTERM SIGINT EXIT
->>>>>>> 1c7a7fb9485c1f6f1bdee942253d1e0b6575ac64
