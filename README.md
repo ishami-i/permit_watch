@@ -1,22 +1,6 @@
 # PermitWatch Rwanda Platform
 
-PermitWatch Rwanda is a civic technology platform designed to improve transparency and accountability in government permit and licensing processes. The platform enables office ombudsman to monitor application progress, and access public information about permits, helping reduce corruption and increase public trust.
-
-## Live Deployment
-
-A live instance is deployed at: **https://permit-watch.ishami.tech/**
-
-### Test accounts
-
-The following accounts are available on the deployed instance for testing/demo purposes. They all share the same password:
-
-| Email | Role | Password |
-|---|---|---|
-| `chief@permitwatch.rw` | Chief | `Passw0rd!2026` |
-| `deputy@chief@permitwatch.rw` | Deputy Chief | `Passw0rd!2026` |
-| `officer.gasabo@permitwatch.rw` | Officer (Gasabo) | `Passw0rd!2026` |
-
-> ⚠️ These are demo credentials on a non-production/testing deployment only.
+PermitWatch Rwanda is a civic technology platform designed to improve transparency and accountability in government permit and licensing processes. The platform enables office of ombudsman to monitor application progress, and access public information about permits, helping reduce corruption and increase public trust.
 
 ## Project Structure
 
@@ -107,26 +91,6 @@ cd permit_watch
 
 ### Quick start
 
-There are **two** one-shot scripts in the repo root, for two different situations. Both share the same `.venv` and `requirements.txt`, but they start different servers:
-
-| Script | Use case | Frontend | Backend server |
-|---|---|---|---|
-| `local_quick-run.sh` | Local development on your machine | Vite dev server (`:5173`, hot reload) | `manage.py runserver` (`:8000`) |
-| `quick_run.sh` | Deployed instance behind nginx (e.g. the [live deployment](#live-deployment)) | Built to `frontend/dist/`, served as static files by nginx | gunicorn (`127.0.0.1:8000`) |
-
-Don't mix them up: `local_quick-run.sh` is for fast iteration and isn't meant to sit behind nginx (no `collectstatic`, no production build, no gunicorn), while `quick_run.sh` is meant for the server and won't give you hot reload.
-
-#### Local development
-
-```bash
-chmod +x local_quick-run.sh
-./local_quick-run.sh
-```
-
-This starts the Flask API simulator, the Django dev server, and the Vite dev server, all in the foreground/background as needed, all against the single shared `.venv`. Press `Ctrl+C` to stop everything.
-
-#### Deployed / production
-
 `quick_run.sh` does everything in one pass — no subcommands, nothing to remember. Run it and it sets up and starts the whole stack, ready to sit behind nginx:
 
 ```bash
@@ -147,7 +111,7 @@ What it does, in order:
 
 Press `Ctrl+C` to stop the backend; the API simulator is shut down along with it.
 
-Re-run `quick_run.sh` on every deploy (or wire it into your deploy pipeline) to reapply migrations, rebuild the frontend, and restart the backend. If you've changed frontend code, re-running this (or `npm run build`) is what refreshes `frontend/dist/` — nginx otherwise keeps serving the older build.
+Re-run `quick_run.sh` on every deploy (or wire it into your deploy pipeline) to reapply migrations, rebuild the frontend, and restart the backend.
 
 Running it directly in a terminal is fine for testing, but on a real server you'll want systemd managing it so it survives reboots and SSH disconnects — see [`deployment.md`](deployment.md#4-run-it-as-a-service-systemd).
 
@@ -203,7 +167,8 @@ python manage.py createsuperuser            # create an admin account
 python manage.py shell
 ```
 
-For scheduled syncing, `data_manipulation/scheduler.py` can run these jobs in-process.
+For scheduled syncing, `data_manipulation/scheduler.py` can run these jobs in-process, or you can put `sync_permits` on cron / Celery Beat / a Kubernetes CronJob instead — see `synchronisation.md`.
+
 ## Development Status
 
 This project is currently under active development as part of a Software Engineering course.
@@ -213,8 +178,21 @@ Current progress includes:
 - UML diagrams
 - System architecture
 - Flask API simulator for local development
-- Backend development (ongoing)
-- Frontend development (ongoing)
+- Backend development
+- Frontend development
+
+## About the deployed version
+### Forget password
+for now the forget password in not working, but since the project is going to be build and introduced to people in charge to this solution.
+
+### logins for deployed version
+> All test users share the same default password: `Passw0rd!2026`
+
+| Role | Email Format | Scope | Example |
+| :--- | :--- | :--- | :--- |
+| **Chief Ombudsman** | `chief@permitwatch.rw` | National | `chief@permitwatch.rw` |
+| **Deputy Ombudsman** | `deputy@permitwatch.rw` | National | `deputy@permitwatch.rw` |
+| **Monitoring Officer** | `office.<district_name>@permitwatch.rw` | District-Specific | `office.gasabo@permitwatch.rw` |
 
 ## Team
 
