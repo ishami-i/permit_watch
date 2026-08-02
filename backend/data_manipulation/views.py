@@ -29,11 +29,17 @@ from data_manipulation.serializer import (
     AlertSerializer,
     ApplicantDetailSerializer,
     ApplicantSerializer,
+    ChangePasswordSerializer,
     FullPermitSerializer,
     OfficerSerializer,
     ProjectDetailSerializer,
     ProjectSerializer,
+    RoleSerializer,
+    UpdateUserRoleSerializer,
+    UserProfileUpdateSerializer,
+    UserSerializer,
 )
+from data_manipulation.services.auth_service import change_password
 from data_manipulation.services.flagged_project import (
     get_flagged_permits,
     get_flagged_projects,
@@ -71,6 +77,16 @@ def _officer_district_name(request):
     return None
 
 
+_ADMIN_ROLES = {Role.RoleNames.CHIEF_OMBUDSMAN, Role.RoleNames.DEPUTY_OMBUDSMAN}
+
+
+def _is_admin(user):
+    """Django superusers and Chief/Deputy Ombudsman roles can manage users."""
+    if user.is_superuser:
+        return True
+    return bool(user.user_role and user.user_role.role_name in _ADMIN_ROLES)
+
+
 
 # AUTH
 
@@ -85,6 +101,7 @@ def current_user_view(request):
         "email": user.user_email,
         "role": user.user_role.role_name.lower() if user.user_role else None,
         "district": user.assigned_district.name if user.assigned_district else None,
+        "is_superuser": user.is_superuser,
     })
 
 
@@ -92,6 +109,84 @@ def current_user_view(request):
 @permission_classes([IsAuthenticated])
 def logout_view(request):
     return Response({"detail": "Logged out."})
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def change_password_view(request):
+    """
+    POST /auth/change-password/
+    Body: { "current_password": "...", "new_password": "..." }
+    """
+    serializer = ChangePasswordSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+
+    change_password(
+        user=request.user,
+        current_password=serializer.validated_data["current_password"],
+        new_password=serializer.validated_data["new_password"],
+    )
+
+    return Response({"detail": "Password updated successfully."}, status=200)
+
+
+# USERS (list/role changes are admin-only; a user may also view/edit their own record)
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def users_list_view(request):
+    if not _is_admin(request.user):
+        return Response({"detail": "You don't have permission to view users."}, status=403)
+
+    users = User.objects.select_related("user_role", "assigned_district").order_by("user_name")
+    return Response(UserSerializer(users, many=True).data)
+
+
+@api_view(["GET", "PATCH"])
+@permission_classes([IsAuthenticated])
+def user_detail_view(request, user_id):
+    is_self = request.user.id == user_id
+    if not is_self and not _is_admin(request.user):
+        return Response({"detail": "You don't have permission to access this user."}, status=403)
+
+    user = get_object_or_404(
+        User.objects.select_related("user_role", "assigned_district"), pk=user_id
+    )
+
+    if request.method == "GET":
+        return Response(UserSerializer(user).data)
+
+    serializer = UserProfileUpdateSerializer(user, data=request.data, partial=True)
+    serializer.is_valid(raise_exception=True)
+    serializer.save()
+    return Response(UserSerializer(user).data)
+
+
+@api_view(["PATCH"])
+@permission_classes([IsAuthenticated])
+def update_user_role_view(request, user_id):
+    if not _is_admin(request.user):
+        return Response({"detail": "You don't have permission to change roles."}, status=403)
+
+    user = get_object_or_404(User, pk=user_id)
+
+    serializer = UpdateUserRoleSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+
+    user.user_role = Role.objects.get(pk=serializer.validated_data["role_id"])
+    user.save(update_fields=["user_role"])
+
+    return Response(UserSerializer(user).data)
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def roles_list_view(request):
+    if not _is_admin(request.user):
+        return Response({"detail": "You don't have permission to view roles."}, status=403)
+
+    return Response(RoleSerializer(Role.objects.all(), many=True).data)
 
 
 

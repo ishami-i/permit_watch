@@ -12,6 +12,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
             "email": user.user_email,
             "role": user.user_role.role_name if user.user_role else None,
             "district": user.assigned_district.name if user.assigned_district else None,
+            "is_superuser": user.is_superuser,
         }
         return data
 

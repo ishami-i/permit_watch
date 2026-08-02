@@ -4,6 +4,7 @@ export const API_BASE_URL = "http://localhost:8000/api";
 export const LOGIN_URL = `${API_BASE_URL}/auth/login/`;
 export const LOGOUT_URL = `${API_BASE_URL}/auth/logout/`;
 export const FORGOT_PASSWORD_URL = `${API_BASE_URL}/auth/forgot-password/`;
+export const CHANGE_PASSWORD_URL = `${API_BASE_URL}/auth/change-password/`;
 export const CURRENT_USER_URL = `${API_BASE_URL}/auth/me/`;
 
 // Permits
@@ -40,6 +41,8 @@ export const DISTRICT_COVERAGE_URL = `${API_BASE_URL}/officers/district-coverage
 // Users
 export const USER_API_URL = `${API_BASE_URL}/users/`;
 export const USER_API_ID_URL = `${API_BASE_URL}/users/{user_id}/`;
+export const USER_API_ROLE_URL = `${API_BASE_URL}/users/{user_id}/role/`;
+export const ROLES_URL = `${API_BASE_URL}/roles/`;
 
 // Statistics / dashboard
 export const STATISTICS_URL = `${API_BASE_URL}/statistics/`;

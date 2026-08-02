@@ -1,5 +1,5 @@
 import api from "../api/axios";
-import { LOGIN_URL, LOGOUT_URL, FORGOT_PASSWORD_URL, CURRENT_USER_URL } from "../config";
+import { LOGIN_URL, LOGOUT_URL, FORGOT_PASSWORD_URL, CHANGE_PASSWORD_URL, CURRENT_USER_URL } from "../config";
 
 export const login = async (email, password) => {
   const response = await api.post(LOGIN_URL, { user_email: email, password });
@@ -22,6 +22,14 @@ export const logout = async () => {
 
 export const forgotPassword = async (email) => {
   const response = await api.post(FORGOT_PASSWORD_URL, { email });
+  return response.data;
+};
+
+export const changePassword = async (currentPassword, newPassword) => {
+  const response = await api.post(CHANGE_PASSWORD_URL, {
+    current_password: currentPassword,
+    new_password: newPassword,
+  });
   return response.data;
 };
 

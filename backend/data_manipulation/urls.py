@@ -1,7 +1,6 @@
 from django.urls import path
 from . import views
 from rest_framework_simplejwt.views import TokenRefreshView
-
 from .auth_views import CustomTokenObtainPairView
 
 urlpatterns = [
@@ -9,7 +8,13 @@ urlpatterns = [
     path("auth/login/", CustomTokenObtainPairView.as_view(), name="token_obtain_pair"),
     path("auth/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
     path("auth/me/", views.current_user_view, name="current_user"),
-
+    path("auth/change-password/", views.change_password_view, name="change-password"),
+    path("auth/logout/", views.logout_view, name="logout"),
+    # Users (admin-only)
+    path("users/", views.users_list_view, name="users"),
+    path("users/<int:user_id>/", views.user_detail_view, name="user_detail"),
+    path("users/<int:user_id>/role/", views.update_user_role_view, name="update_user_role"),
+    path("roles/", views.roles_list_view, name="roles"),
     # Permits
     path("permits/", views.all_permit_data_view, name="permits"),
     path("permits/full/", views.all_full_permit_data_view, name="full_permits"),
@@ -17,7 +22,6 @@ urlpatterns = [
     path("permits/full/<int:permit_id>/", views.full_permit_data_view, name="full_permit"),
     path("permits/flagged/", views.flagged_permits_list, name="flagged_permits_list"),
     path("permits/<int:permit_id>/check/", views.trigger_permit_flag_check, name="check_permit"),
-
     # Projects
     path("projects/flagged/", views.flagged_projects_list, name="flagged_projects_list"),
     path("dashboard/summary/", views.dashboard_summary_view, name="dashboard_summary"),
@@ -29,8 +33,6 @@ urlpatterns = [
     path("alerts/", views.alerts_list_view, name="alerts"),
     path("alerts/<int:alert_id>/", views.alert_detail_view, name="alert"),
     path("alerts/<int:alert_id>/resolve/", views.resolve_alert_view, name="resolve_alert"),
-    path("auth/logout/", views.logout_view, name="logout"),
-
     path("officers/assigned/", views.assigned_officers_view, name="officers_assigned"),
     path("officers/unassigned/", views.unassigned_officers_view, name="officers_unassigned"),
     path("officers/district-coverage/", views.district_coverage_view, name="district_coverage"),

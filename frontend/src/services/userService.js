@@ -1,5 +1,5 @@
 import api from "../api/axios";
-import { USER_API_URL, USER_API_ID_URL } from "../config";
+import { USER_API_URL, USER_API_ID_URL, USER_API_ROLE_URL, ROLES_URL } from "../config";
 
 export const getUsers = async () => {
   const response = await api.get(USER_API_URL);
@@ -19,9 +19,15 @@ export const updateUser = async (userId, payload) => {
   return response.data;
 };
 
-export const deactivateUser = async (userId) => {
-  const response = await api.post(
-    `${USER_API_ID_URL.replace("{user_id}", userId)}deactivate/`
+export const updateUserRole = async (userId, roleId) => {
+  const response = await api.patch(
+    USER_API_ROLE_URL.replace("{user_id}", userId),
+    { role_id: roleId }
   );
+  return response.data;
+};
+
+export const getRoles = async () => {
+  const response = await api.get(ROLES_URL);
   return response.data;
 };

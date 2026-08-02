@@ -18,6 +18,7 @@ from .models import (
     Professional,
     Project,
     Property,
+    Role,
     Supervisor,
     Timeline,
     Zoning,
@@ -335,3 +336,67 @@ class ApplicantDetailSerializer(ApplicantSerializer):
 
     class Meta(ApplicantSerializer.Meta):
         fields = ApplicantSerializer.Meta.fields + ["permits", "history"]
+
+
+class ChangePasswordSerializer(serializers.Serializer):
+    current_password = serializers.CharField(write_only=True)
+    new_password = serializers.CharField(write_only=True, min_length=8)
+
+
+# USERS (admin-only user & role management)
+
+
+class RoleSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(source="roleId", read_only=True)
+    name = serializers.CharField(source="role_name", read_only=True)
+    label = serializers.CharField(source="get_role_name_display", read_only=True)
+
+    class Meta:
+        model = Role
+        fields = ["id", "name", "label", "role_description"]
+
+
+class UserSerializer(serializers.ModelSerializer):
+    name = serializers.CharField(source="user_name", read_only=True)
+    email = serializers.EmailField(source="user_email", read_only=True)
+    phone = serializers.CharField(source="user_phone", read_only=True)
+    status = serializers.CharField(source="user_status", read_only=True)
+    role = serializers.CharField(source="user_role.role_name", read_only=True, default=None)
+    role_id = serializers.IntegerField(source="user_role.roleId", read_only=True, default=None)
+    district = serializers.CharField(source="assigned_district.name", read_only=True, default=None)
+
+    class Meta:
+        model = User
+        fields = [
+            "id",
+            "name",
+            "email",
+            "phone",
+            "status",
+            "role",
+            "role_id",
+            "district",
+            "is_superuser",
+        ]
+
+
+class UpdateUserRoleSerializer(serializers.Serializer):
+    role_id = serializers.IntegerField()
+
+    def validate_role_id(self, value):
+        if not Role.objects.filter(pk=value).exists():
+            raise serializers.ValidationError("That role doesn't exist.")
+        return value
+
+
+class UserProfileUpdateSerializer(serializers.ModelSerializer):
+    """Self-service (or admin) edit of a user's own name/phone.
+    Deliberately excludes role/status/district — those go through
+    update_user_role_view, which is admin-only."""
+
+    name = serializers.CharField(source="user_name", required=False)
+    phone = serializers.CharField(source="user_phone", required=False, allow_blank=True)
+
+    class Meta:
+        model = User
+        fields = ["name", "phone"]

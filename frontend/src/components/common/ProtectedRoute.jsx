@@ -27,6 +27,7 @@ export default function ProtectedRoute({ allowedRoles }) {
 
   if (
     allowedRoles &&
+    !user.is_superuser &&
     !allowedRoles.map(normalizeRole).includes(normalizeRole(user.role))
   ) {
     return <Navigate to="/unauthorized" replace />;

@@ -33,11 +33,9 @@ import UnassignedOfficers from "./pages/Monitoring/UnassignedOfficers";
 import DistrictCoverage from "./pages/Monitoring/DistrictCoverage";
 import OfficerProfile from "./pages/Monitoring/OfficerProfile";
 
-import Users from "./pages/Users/Users";
-import UserDetails from "./pages/Users/UserDetails";
-
 import Settings from "./pages/Settings/Settings";
 import Profile from "./pages/Profile/Profile";
+import Users from "./pages/Users/Users";
 
 import NotFound from "./pages/Errors/NotFound";
 import Unauthorized from "./pages/Errors/Unauthorized";
@@ -84,10 +82,8 @@ function App() {
             <Route path="/monitoring/coverage" element={<DistrictCoverage />} />
             <Route path="/monitoring/officers/:id" element={<OfficerProfile />} />
 
-            <Route path="/users" element={<Users />} />
-            <Route path="/users/:id" element={<UserDetails />} />
-
             <Route path="/settings" element={<Settings />} />
+            <Route path="/users" element={<Users />} />
           </Route>
         </Route>
 
