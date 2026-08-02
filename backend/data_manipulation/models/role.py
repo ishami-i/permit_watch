@@ -7,6 +7,7 @@ class Role(models.Model):
         CHIEF_OMBUDSMAN = 'Chief_Ombudsman', 'Chief Ombudsman'
         DEPUTY_OMBUDSMAN = 'Deputy_Ombudsman', 'Deputy Ombudsman'
         MONITORING_OFFICER = 'Monitoring_Officer', 'Monitoring Officer'
+        ADMIN = 'Admin', 'Admin'
 
     roleId = models.AutoField(primary_key=True)
 
