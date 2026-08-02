@@ -19,6 +19,7 @@ venv/
 .env/
 
 # Environment-specific files
+.venv
 .env
 .env.local
 *.local

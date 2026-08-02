@@ -13,8 +13,6 @@ export const ROLES = {
 export const ADMIN_ROLES = [ROLES.CHIEF, ROLES.DEPUTY, ROLES.CHIEF_ALT];
 export const USERS_PAGE_ROLES = [...ADMIN_ROLES, ROLES.ADMIN];
 
-// Backend role strings have inconsistent casing (e.g. "Chief_Ombudsman" vs
-// "monitoring_officer"), so always compare roles case-insensitively.
 export const normalizeRole = (role) => role?.toLowerCase();
 
 export default function ProtectedRoute({ allowedRoles }) {

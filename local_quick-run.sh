@@ -1,11 +1,12 @@
 #!/bin/bash
 
+set -euo pipefail
+
 # PermitWatch Rwanda - Local Development Script
 # Starts:
 #   - API Simulator (Flask)
 #   - Django Backend
 #   - React/Vite Frontend
-set -e
 
 echo "╔════════════════════════════════════════════════════════════╗"
 echo "║          🏗️ PermitWatch Rwanda - Local Development 🏗️      ║"
@@ -110,13 +111,25 @@ print_success "Created backend/.env"
 
 fi
 
-
 # Django migrations
-print_step "Running migrations..."
+print_step "Preparing database..."
 
 cd "$BACKEND_DIR"
 
-"$VENV_PY" manage.py makemigrations "$APP_NAME"
+# If conflicting migrations exist, create a merge migration
+if "$VENV_PY" manage.py makemigrations --check >/dev/null 2>&1; then
+    :
+else
+    CHECK_OUTPUT=$("$VENV_PY" manage.py makemigrations --check 2>&1 || true)
+
+    if echo "$CHECK_OUTPUT" | grep -q "Conflicting migrations detected"; then
+        print_warning "Conflicting migrations detected."
+        print_step "Creating merge migration..."
+        "$VENV_PY" manage.py makemigrations --merge --noinput
+    fi
+fi
+
+print_step "Applying migrations..."
 "$VENV_PY" manage.py migrate
 
 print_success "Database ready"

@@ -1,6 +1,6 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
-import ProtectedRoute, { ADMIN_ROLES } from "./components/common/ProtectedRoute";
+import ProtectedRoute, { USERS_PAGE_ROLES } from "./components/common/ProtectedRoute";
 
 import AuthLayout from "./layouts/AuthLayout";
 import DashboardLayout from "./layouts/DashboardLayout";
@@ -74,8 +74,8 @@ function App() {
           </Route>
         </Route>
 
-        {/* Chief / Deputy Ombudsman only */}
-        <Route element={<ProtectedRoute allowedRoles={ADMIN_ROLES} />}>
+        {/* Chief / Deputy Ombudsman / Admin only */}
+        <Route element={<ProtectedRoute allowedRoles={USERS_PAGE_ROLES} />}>
           <Route element={<DashboardLayout />}>
             <Route path="/monitoring/assigned" element={<AssignedOfficers />} />
             <Route path="/monitoring/unassigned" element={<UnassignedOfficers />} />
