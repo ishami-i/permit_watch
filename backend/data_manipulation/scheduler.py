@@ -7,7 +7,6 @@ logger = logging.getLogger(__name__)
 
 _scheduler = None
 
-
 def _run_sync_job():
     logger.info("Scheduled sync_permits starting...")
     try:
@@ -15,6 +14,11 @@ def _run_sync_job():
     except Exception:
         logger.exception("Scheduled sync_permits failed")
 
+    logger.info("Scheduled flag_permits starting...")
+    try:
+        call_command("flag_permits")
+    except Exception:
+        logger.exception("Scheduled flag_permits failed")
 
 def start_scheduler():
     global _scheduler

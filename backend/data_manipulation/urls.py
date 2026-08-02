@@ -9,6 +9,7 @@ urlpatterns = [
     path("auth/login/", CustomTokenObtainPairView.as_view(), name="token_obtain_pair"),
     path("auth/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
     path("auth/me/", views.current_user_view, name="current_user"),
+    path("auth/change-password/", views.change_password_view, name="change_password"),
 
     # Permits
     path("permits/", views.all_permit_data_view, name="permits"),

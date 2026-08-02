@@ -7,9 +7,11 @@ export const ROLES = {
   CHIEF_ALT: "Chief_Ombudsman",
   DEPUTY: "deputy_ombudsman",
   MONITORING_OFFICER: "monitoring_officer",
+  ADMIN: "admin",
 };
 
 export const ADMIN_ROLES = [ROLES.CHIEF, ROLES.DEPUTY, ROLES.CHIEF_ALT];
+export const USERS_PAGE_ROLES = [...ADMIN_ROLES, ROLES.ADMIN];
 
 // Backend role strings have inconsistent casing (e.g. "Chief_Ombudsman" vs
 // "monitoring_officer"), so always compare roles case-insensitively.

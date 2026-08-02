@@ -5,6 +5,7 @@ export const LOGIN_URL = `${API_BASE_URL}/auth/login/`;
 export const LOGOUT_URL = `${API_BASE_URL}/auth/logout/`;
 export const FORGOT_PASSWORD_URL = `${API_BASE_URL}/auth/forgot-password/`;
 export const CURRENT_USER_URL = `${API_BASE_URL}/auth/me/`;
+export const CHANGE_PASSWORD_URL = `${API_BASE_URL}/auth/change-password/`;
 
 // Permits
 export const PERMIT_API_URL = `${API_BASE_URL}/permits/`;

@@ -26,9 +26,9 @@ from .models import (
 User = get_user_model()
 
 
-# ---------------------------------------------------------------------------
+
 # APPLICANT
-# ---------------------------------------------------------------------------
+
 
 class ApplicantSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(source="applicantId", read_only=True)
@@ -41,9 +41,9 @@ class ApplicantSerializer(serializers.ModelSerializer):
         fields = ["id", "name", "email", "phone", "national_id"]
 
 
-# ---------------------------------------------------------------------------
+
 # PROFESSIONAL / SUPERVISOR
-# ---------------------------------------------------------------------------
+
 
 class ProfessionalSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(source="professionalId", read_only=True)
@@ -65,9 +65,9 @@ class SupervisorSerializer(serializers.ModelSerializer):
         fields = ["id", "name", "phone", "email", "district"]
 
 
-# ---------------------------------------------------------------------------
+
 # PROPERTY / ZONING
-# ---------------------------------------------------------------------------
+
 
 class ZoningSerializer(serializers.ModelSerializer):
     district = serializers.CharField(source="property.property_district", read_only=True)
@@ -88,9 +88,9 @@ class PropertySerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
-# ---------------------------------------------------------------------------
+
 # PROJECT / FINANCIAL DATA
-# ---------------------------------------------------------------------------
+
 
 class FinancialDataSerializer(serializers.ModelSerializer):
     class Meta:
@@ -128,9 +128,9 @@ class ProjectDetailSerializer(ProjectSerializer):
         return PermitBriefSerializer(obj.permits.all(), many=True).data
 
 
-# ---------------------------------------------------------------------------
+
 # TIMELINE
-# ---------------------------------------------------------------------------
+
 
 class TimelineSerializer(serializers.ModelSerializer):
     class Meta:
@@ -138,9 +138,9 @@ class TimelineSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
-# ---------------------------------------------------------------------------
+
 # ALERT (defined before PERMIT below, since FullPermitSerializer nests it)
-# ---------------------------------------------------------------------------
+
 
 class AlertCommentSerializer(serializers.ModelSerializer):
     author = serializers.SerializerMethodField()
@@ -195,9 +195,9 @@ class AlertSerializer(serializers.ModelSerializer):
         ]
 
 
-# ---------------------------------------------------------------------------
+
 # PERMIT
-# ---------------------------------------------------------------------------
+
 
 class PermitSerializer(serializers.ModelSerializer):
     """Bare permit fields, no nested relations. Used for flat/internal cases."""
@@ -283,9 +283,9 @@ class FullPermitSerializer(serializers.ModelSerializer):
         ]
 
 
-# ---------------------------------------------------------------------------
+
 # OFFICER (User, scoped to the Monitoring Officer role)
-# ---------------------------------------------------------------------------
+
 
 class OfficerSerializer(serializers.ModelSerializer):
     name = serializers.CharField(source="user_name", read_only=True)
@@ -313,11 +313,11 @@ class OfficerSerializer(serializers.ModelSerializer):
         fields = ["id", "name", "email", "phone", "district", "permit_count", "alert_count", "performance_score"]
 
 
-# ---------------------------------------------------------------------------
+
 # APPLICANT DETAIL (defined last: extends ApplicantSerializer with the
 # applicant's permit history, scoped to the requesting officer's district
 # when one applies — see views._officer_district_name)
-# ---------------------------------------------------------------------------
+
 
 class ApplicantDetailSerializer(ApplicantSerializer):
     permits = serializers.SerializerMethodField()

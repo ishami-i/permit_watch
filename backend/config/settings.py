@@ -17,7 +17,7 @@ from dotenv import load_dotenv
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
+load_dotenv(BASE_DIR / ".env")
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
@@ -26,7 +26,7 @@ SECRET_KEY = os.getenv(
     "DJANGO_SECRET_KEY",
     "django-insecure-dev-only-fallback-key",  # never use this in production
 )# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get("DEBUG", "False") == "True"
 
 ALLOWED_HOSTS = ["permit-watch.ishami.tech", "127.0.0.1", "localhost"]
 
@@ -132,8 +132,6 @@ STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 # loading api url from .env file
-load_dotenv(BASE_DIR / ".env")
-
 PERMIT_API_URL = os.getenv(
     "PERMIT_API_URL",
     "http://127.0.0.1:5000/api/permits",

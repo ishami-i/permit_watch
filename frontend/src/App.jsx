@@ -1,6 +1,6 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
-import ProtectedRoute, { ADMIN_ROLES } from "./components/common/ProtectedRoute";
+import ProtectedRoute, { ADMIN_ROLES, USERS_PAGE_ROLES } from "./components/common/ProtectedRoute";
 
 import AuthLayout from "./layouts/AuthLayout";
 import DashboardLayout from "./layouts/DashboardLayout";
@@ -78,19 +78,21 @@ function App() {
 
         {/* Chief / Deputy Ombudsman only */}
         <Route element={<ProtectedRoute allowedRoles={ADMIN_ROLES} />}>
-          <Route element={<DashboardLayout />}>
-            <Route path="/monitoring/assigned" element={<AssignedOfficers />} />
-            <Route path="/monitoring/unassigned" element={<UnassignedOfficers />} />
-            <Route path="/monitoring/coverage" element={<DistrictCoverage />} />
-            <Route path="/monitoring/officers/:id" element={<OfficerProfile />} />
+	  <Route element={<DashboardLayout />}>
+	    <Route path="/monitoring/assigned" element={<AssignedOfficers />} />
+	    <Route path="/monitoring/unassigned" element={<UnassignedOfficers />} />
+	    <Route path="/monitoring/coverage" element={<DistrictCoverage />} />
+	    <Route path="/monitoring/officers/:id" element={<OfficerProfile />} />
+	  </Route>
+	</Route>
 
-            <Route path="/users" element={<Users />} />
-            <Route path="/users/:id" element={<UserDetails />} />
-
-            <Route path="/settings" element={<Settings />} />
-          </Route>
-        </Route>
-
+	<Route element={<ProtectedRoute allowedRoles={USERS_PAGE_ROLES} />}>
+	    <Route element={<DashboardLayout />}>
+   	    <Route path="/users" element={<Users />} />
+	    <Route path="/users/:id" element={<UserDetails />} />
+	  <Route path="/settings" element={<Settings />} />
+	  </Route>
+	</Route>
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
 
         <Route element={<ErrorLayout />}>

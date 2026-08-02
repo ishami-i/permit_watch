@@ -7,9 +7,10 @@ import { Link } from "react-router-dom";
 import StatusBadge from "../../components/common/StatusBadge";
 
 const GROUPS = [
-  { role: "CHIEF_OMBUDSMAN", title: "Chief Ombudsman" },
+  { role: "chief_ombudsman", title: "Chief Ombudsman" },
   { role: "deputy_ombudsman", title: "Deputy Ombudsman" },
   { role: "monitoring_officer", title: "Monitoring Officers" },
+  { role: "admin", title: "Admin"},
 ];
 
 export default function Users() {
